@@ -1,5 +1,7 @@
 # Plan modifiers AND defaults
 
+> **The single biggest type-error trap in this migration:** `Default` is a *separate field* on the attribute struct — it's the `defaults` package (`stringdefault.StaticString(...)`), not a value you put inside `PlanModifiers`. SDKv2 had no such split, so it's tempting to bundle them. The compiler will catch it, but you'll lose minutes hunting the cause if you don't internalise this first. See "Defaults — separate package, NOT a plan modifier" below.
+
 ## Quick summary
 - SDKv2 `ForceNew: true` → framework `PlanModifiers: []planmodifier.X{xplanmodifier.RequiresReplace()}` — NOT a `RequiresReplace: true` field.
 - `Default` is **not** a plan modifier in the framework. It's a separate `defaults` package: `Default: stringdefault.StaticString("foo")`. Wiring `Default` into `PlanModifiers` is a common compile error.

@@ -85,6 +85,8 @@ import (
 | `ExactlyOneOf` / `AtLeastOneOf` / `RequiredWith` | corresponding `*validator.*` from `terraform-plugin-framework-validators` |
 | `Set: schema.HashString` (and other `SchemaSetFunc`s) | **delete** — not needed, framework handles set uniqueness |
 
+> **The `Set: hashFunc` trap.** SDKv2 set attributes commonly carry `Set: schema.HashString` or a custom hash function. Framework `SetAttribute` and `SetNestedAttribute` compute uniqueness internally — there is no `Set:` field on either, and trying to translate one to a custom type is wasted effort. Just delete it (and remove any imports of `schema.HashString` / hash helpers) when you migrate the attribute. If the hasher had non-trivial logic (e.g., case-insensitive uniqueness), that logic now lives either in the API layer or as a custom type with `Equal()` semantics — see `state-and-types.md`.
+
 ## Worked example — small resource schema
 
 **SDKv2**:

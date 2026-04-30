@@ -1,29 +1,48 @@
 #!/usr/bin/env python3
-"""Grader for sdkv2-to-framework iteration-1.
+"""Grader for sdkv2-to-framework evals.
 
 Reads each eval's outputs and produces grading.json per run, with each expectation
-carrying {text, passed, evidence} per the skill-creator schema.
+carrying {text, passed, evidence} per the skill-creator viewer schema.
 
-The skill-creator viewer expects this exact structure under each run dir:
-    grading.json: {
-      "expectations": [{"text": "...", "passed": true, "evidence": "..."}, ...],
-      "summary": {"passed": N, "failed": N, "total": N, "pass_rate": 0.X}
-    }
+Compared to the iteration-1 grader, this version:
+
+1. Runs real `go build`, `go vet`, and `go test -run TestProvider` against the
+   provider clone, with the agent's migrated outputs applied first. The clone
+   is reset (`git restore + git clean -fd`) before and after each grade so
+   runs don't contaminate each other.
+2. Fails the negative-gate / no-unrelated-files-modified check honestly — the
+   agent's outputs may only land in files the eval prompt asked to migrate.
+3. Drops the off-by-one ForceNew tolerance and the vacuous "ListNestedBlock
+   means we don't need a syntactic-change disclaimer" pass.
+4. Grades evals 7-10 (defaults, mux-refusal, chained-upgraders, cross-attr).
+
+Usage:
+    python grade.py [--iteration N] [--no-go-checks]
+
+Layout each grader expects under <eval-dir>/<config>/run-<N>/outputs/:
+  - notes.md
+  - migrated/<basename>.go (and _test.go) for full migration evals
+  - migrated_schema.go + reasoning.md for schema-only evals
+  - audit_report.md + migration_checklist.md for inventory-only
+  - REFUSAL.md for the mux-refusal eval (or no migrated/ dir at all)
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-WORKSPACE = Path("/Users/simon.lynch/git/agentskill-sdkv2-to-framework/sdkv2-to-framework-workspace/iteration-1")
-EVALS_JSON = Path("/Users/simon.lynch/git/agentskill-sdkv2-to-framework/sdkv2-to-framework/evals/evals.json")
+REPO_ROOT = Path("/Users/simon.lynch/git/agentskill-sdkv2-to-framework")
+EVALS_JSON = REPO_ROOT / "sdkv2-to-framework/evals/evals.json"
 CLONE_PATH = Path("/Users/simon.lynch/git/terraform-provider-openstack")
+WORKSPACE_BASE = REPO_ROOT / "sdkv2-to-framework-workspace"
 
-# The 12 verbatim HashiCorp step titles (substrings to regex-match in produced checklists).
+# 12 verbatim HashiCorp step titles for the inventory eval.
 HASHICORP_12_STEPS = [
     "sufficient test coverage",
     "data consistency",
@@ -56,32 +75,141 @@ def grep_count(haystack: str, pattern: str, flags: int = 0) -> int:
 
 
 # -----------------------------------------------------------------------------
+# Real go-toolchain checks against a temporary clone state
+# -----------------------------------------------------------------------------
+
+def reset_clone() -> None:
+    """Restore + clean the openstack clone so each grade starts from a known state."""
+    subprocess.run(["git", "-C", str(CLONE_PATH), "restore", "--source=HEAD",
+                    "--staged", "--worktree", "--", "openstack/"],
+                   capture_output=True, text=True, timeout=30)
+    subprocess.run(["git", "-C", str(CLONE_PATH), "clean", "-fd", "--",
+                    "openstack/"],
+                   capture_output=True, text=True, timeout=30)
+
+
+def apply_outputs_to_clone(out_dir: Path) -> list[str]:
+    """Copy *.go files from <out_dir>/migrated/ into <clone>/openstack/.
+    Also copy migrated_schema.go (single-file schema-only evals) into the
+    target's path if it exists. Returns the list of relative paths written.
+    """
+    written: list[str] = []
+    migrated_dir = out_dir / "migrated"
+    if migrated_dir.is_dir():
+        for src in migrated_dir.glob("*.go"):
+            dst = CLONE_PATH / "openstack" / src.name
+            shutil.copyfile(src, dst)
+            written.append(f"openstack/{src.name}")
+    schema_only = out_dir / "migrated_schema.go"
+    if schema_only.exists():
+        # The schema-only evals don't tell us which file to overwrite, so
+        # we land them next to the original under a distinguishing name.
+        # Compile-checks for these evals are soft (Output A/B both compile).
+        dst = CLONE_PATH / "openstack" / f"_eval_schema_{schema_only.name}"
+        shutil.copyfile(schema_only, dst)
+        written.append(f"openstack/_eval_schema_{schema_only.name}")
+    return written
+
+
+def run_go(cmd: list[str], timeout: int = 180) -> tuple[bool, str]:
+    try:
+        r = subprocess.run(cmd, cwd=CLONE_PATH, capture_output=True,
+                           text=True, timeout=timeout)
+        ok = r.returncode == 0
+        out = (r.stderr or r.stdout or "").strip()
+        return ok, out
+    except subprocess.TimeoutExpired as e:
+        return False, f"timed out: {e}"
+    except Exception as e:
+        return False, f"subprocess failed: {e}"
+
+
+def check_compile_and_provider(out_dir: Path, run_test_provider: bool, no_go_checks: bool) -> dict:
+    """Run go build, go vet, and (optionally) TestProvider against the clone
+    after applying out_dir's migrated files. Returns dict with keys:
+      build_ok, vet_ok, testprovider_ok, evidence (per stage), unrelated_modified.
+    Always resets the clone before and after.
+    """
+    reset_clone()
+    written = apply_outputs_to_clone(out_dir)
+    result = {"written": written}
+
+    if no_go_checks:
+        result.update({
+            "build_ok": None, "vet_ok": None, "testprovider_ok": None,
+            "build_evidence": "skipped (--no-go-checks)",
+            "vet_evidence":   "skipped (--no-go-checks)",
+            "testprovider_evidence": "skipped (--no-go-checks)",
+            "unrelated_modified": [],
+        })
+        reset_clone()
+        return result
+
+    build_ok, build_err = run_go(["go", "build", "./..."], timeout=180)
+    result["build_ok"] = build_ok
+    result["build_evidence"] = build_err[:400] if not build_ok else "go build ./... succeeded"
+
+    if build_ok:
+        vet_ok, vet_err = run_go(["go", "vet", "./..."], timeout=120)
+    else:
+        vet_ok, vet_err = False, "skipped (build failed)"
+    result["vet_ok"] = vet_ok
+    result["vet_evidence"] = vet_err[:400] if not vet_ok else "go vet ./... succeeded"
+
+    if run_test_provider and build_ok:
+        tp_ok, tp_err = run_go(
+            ["go", "test", "-run", "^TestProvider$", "-count=1", "./openstack/..."],
+            timeout=180)
+    else:
+        tp_ok, tp_err = (None, "skipped — partial migration or build failed")
+    result["testprovider_ok"] = tp_ok
+    result["testprovider_evidence"] = tp_err[:400] if tp_ok is False else (
+        "TestProvider passes" if tp_ok else "TestProvider not run (partial migration)")
+
+    # Unrelated-files check: list any modified .go files in openstack/ that
+    # weren't in our written list. (`git diff` against HEAD captures both
+    # overwrites of tracked files and new untracked files via `ls-files -o`.)
+    diff = subprocess.run(["git", "-C", str(CLONE_PATH), "status",
+                           "--porcelain", "--", "openstack/"],
+                          capture_output=True, text=True, timeout=15).stdout
+    modified = set()
+    for line in diff.splitlines():
+        # porcelain format: "XY path"
+        if len(line) >= 4:
+            path = line[3:].strip()
+            if path.endswith(".go"):
+                modified.add(path)
+    unrelated = sorted(p for p in modified if p not in set(written))
+    result["unrelated_modified"] = unrelated
+
+    reset_clone()
+    return result
+
+
+# -----------------------------------------------------------------------------
 # Per-eval graders
 # -----------------------------------------------------------------------------
 
-def grade_inventory_only(out_dir: Path) -> list[dict]:
+def grade_inventory_only(out_dir: Path, no_go_checks: bool) -> list[dict]:
     """Eval 1 — inventory-only."""
     checklist = read(out_dir / "migration_checklist.md")
     audit = read(out_dir / "audit_report.md")
     expectations = []
 
-    # 1. Checklist enumerates all 12 verbatim step titles.
     found = [step for step in HASHICORP_12_STEPS if re.search(re.escape(step), checklist, re.I)]
     expectations.append(expectation(
         "The migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
         passed=len(found) == 12,
-        evidence=f"matched {len(found)}/12 step titles. matched: {found}; missing: {[s for s in HASHICORP_12_STEPS if s not in found]}",
+        evidence=f"matched {len(found)}/12. missing: {[s for s in HASHICORP_12_STEPS if s not in found]}",
     ))
 
-    # 2. Step 7 TDD ordering (tests fail first / red before code).
     tdd_match = re.search(r"(?i)(fail|red).{0,80}(test|tdd).{0,200}|(test|tdd).{0,80}(fail|red)", checklist)
     expectations.append(expectation(
         "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
         passed=bool(tdd_match),
-        evidence=tdd_match.group(0) if tdd_match else "no fail/red+test phrasing found",
+        evidence=tdd_match.group(0)[:200] if tdd_match else "no fail/red+test phrasing found",
     ))
 
-    # 3. Step 2 data-consistency review present.
     dc_match = re.search(r"(?i)data.consistency", checklist)
     expectations.append(expectation(
         "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
@@ -89,7 +217,6 @@ def grade_inventory_only(out_dir: Path) -> list[dict]:
         evidence=dc_match.group(0) if dc_match else "no data-consistency mention",
     ))
 
-    # 4. Audit identifies at least one needs-manual-review file.
     nmr_match = re.search(r"(?i)(needs.manual.review|manual.review|requires.review)", audit)
     expectations.append(expectation(
         "The audit report identifies at least one file under 'needs manual review'",
@@ -97,23 +224,24 @@ def grade_inventory_only(out_dir: Path) -> list[dict]:
         evidence=nmr_match.group(0) if nmr_match else "no manual-review section",
     ))
 
-    # 5. No source files modified — `git status` of openstack clone shows clean tree.
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(CLONE_PATH), "status", "--porcelain", "--", "openstack/"],
-            capture_output=True, text=True, timeout=10,
-        )
-        clean = result.returncode == 0 and result.stdout.strip() == ""
-        evidence = "clean" if clean else f"dirty: {result.stdout[:200]}"
-    except Exception as e:
-        clean = False
-        evidence = f"git failed: {e}"
+    # No source-file mods on the clone.
+    if no_go_checks:
+        clean = True
+        evidence = "skipped (--no-go-checks)"
+    else:
+        try:
+            r = subprocess.run(["git", "-C", str(CLONE_PATH), "status",
+                                "--porcelain", "--", "openstack/"],
+                               capture_output=True, text=True, timeout=15)
+            clean = r.returncode == 0 and r.stdout.strip() == ""
+            evidence = "clean" if clean else f"dirty: {r.stdout[:200]}"
+        except Exception as e:
+            clean, evidence = False, f"git failed: {e}"
     expectations.append(expectation(
         "No source files in <clone-path>/openstack/ have been modified (git status clean for *.go)",
         passed=clean, evidence=evidence,
     ))
 
-    # 6. Inventory under 100 KB.
     audit_size = (out_dir / "audit_report.md").stat().st_size if (out_dir / "audit_report.md").exists() else 0
     expectations.append(expectation(
         "The produced inventory artefact is under 100 KB",
@@ -124,279 +252,424 @@ def grade_inventory_only(out_dir: Path) -> list[dict]:
     return expectations
 
 
-def grade_migration(out_dir: Path, eval_name: str, eval_id: int, file_basename: str, is_resource: bool = False, expect_state_upgrade: bool = False) -> list[dict]:
-    """Eval 2/3/6 — full migration with notes."""
+def grade_migration(out_dir: Path, eval_id: int, file_basename: str,
+                    is_resource: bool, expect_state_upgrade: bool,
+                    no_go_checks: bool) -> list[dict]:
+    """Eval 2/3/6 — full migration."""
     migrated_dir = out_dir / "migrated"
-    notes = read(out_dir / "notes.md")
-    expectations = []
-
-    # Find primary migrated source file.
     src_path = migrated_dir / f"{file_basename}.go"
     src = read(src_path) if src_path.exists() else ""
     test_path = migrated_dir / f"{file_basename}_test.go"
     test_src = read(test_path) if test_path.exists() else ""
+    expectations = []
 
-    # 1. No SDKv2 imports in modified files.
     sdkv2_in_src = "terraform-plugin-sdk/v2" in src
-    sdkv2_in_test = "terraform-plugin-sdk/v2" in test_src
     expectations.append(expectation(
         "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
         passed=not sdkv2_in_src,
-        evidence=f"src has sdkv2 import: {sdkv2_in_src}; test: {sdkv2_in_test}",
+        evidence=f"src has sdkv2 import: {sdkv2_in_src}; test: {'terraform-plugin-sdk/v2' in test_src}",
     ))
 
-    # 2. Implements interface methods.
     if is_resource:
-        # Look for at least 6 framework methods on a resource type.
-        methods_present = []
-        for m in ["Metadata", "Schema", "Create", "Read", "Update", "Delete"]:
-            if re.search(rf"func\s*\(\w+\s+\*?\w+\)\s+{m}\s*\(", src):
-                methods_present.append(m)
+        methods = [m for m in ["Metadata", "Schema", "Create", "Read", "Update", "Delete"]
+                   if re.search(rf"func\s*\(\w+\s+\*?\w+\)\s+{m}\s*\(", src)]
         expectations.append(expectation(
-            "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
-            passed=len(methods_present) >= 6,
-            evidence=f"methods found: {methods_present}",
+            "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete present)",
+            passed=len(methods) >= 6,
+            evidence=f"methods found: {methods}",
         ))
     else:
-        # Data source: Metadata, Schema, Read.
-        methods_present = []
-        for m in ["Metadata", "Schema", "Read"]:
-            if re.search(rf"func\s*\(\w+\s+\*?\w+\)\s+{m}\s*\(", src):
-                methods_present.append(m)
+        methods = [m for m in ["Metadata", "Schema", "Read"]
+                   if re.search(rf"func\s*\(\w+\s+\*?\w+\)\s+{m}\s*\(", src)]
         expectations.append(expectation(
-            "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
-            passed=len(methods_present) == 3,
-            evidence=f"methods found: {methods_present}",
+            "The migrated file implements datasource.DataSource (Metadata, Schema, Read present)",
+            passed=len(methods) == 3,
+            evidence=f"methods found: {methods}",
         ))
-
-        # 2b. Uses datasource/schema package.
-        uses_dsschema = "terraform-plugin-framework/datasource/schema" in src
-        uses_rschema = "terraform-plugin-framework/resource/schema\"" in src
+        uses_ds = "terraform-plugin-framework/datasource/schema" in src
+        uses_rs = "terraform-plugin-framework/resource/schema\"" in src
         expectations.append(expectation(
             "The migrated file uses the datasource/schema package, not the resource/schema package",
-            passed=uses_dsschema and not uses_rschema,
-            evidence=f"datasource/schema: {uses_dsschema}; resource/schema: {uses_rschema}",
+            passed=uses_ds and not uses_rs,
+            evidence=f"datasource/schema: {uses_ds}; resource/schema: {uses_rs}",
         ))
 
-    # 3. ForceNew → RequiresReplace (resource only, eval 3).
+    # Eval 3 (keypair) — every ForceNew must become a RequiresReplace, no off-by-one tolerance.
     if eval_id == 3:
-        # Read original SDKv2 source to find ForceNew attr names.
         original = read(CLONE_PATH / "openstack" / f"{file_basename}.go")
-        force_new_count_orig = grep_count(original, r'ForceNew:\s*true')
-        requires_replace_count = grep_count(src, r'RequiresReplace\s*\(')
+        force_new = grep_count(original, r'ForceNew:\s*true')
+        rr = grep_count(src, r'RequiresReplace\s*\(')
         expectations.append(expectation(
-            "Every audited ForceNew attribute now uses RequiresReplace plan modifier",
-            passed=requires_replace_count >= force_new_count_orig - 1,  # off-by-one tolerance
-            evidence=f"original ForceNew count: {force_new_count_orig}; migrated RequiresReplace count: {requires_replace_count}",
+            "Every ForceNew attribute now has a corresponding RequiresReplace plan modifier (no off-by-one tolerance)",
+            passed=rr >= force_new,
+            evidence=f"original ForceNew: {force_new}; migrated RequiresReplace: {rr}",
         ))
 
-    # 4. go build passes — check notes.md for any compile-success claim.
-    # Loosened from the original tight-distance regex: the agent may write
-    # "go build ./openstack/... and go vet ./openstack/... pass cleanly" with
-    # a long intervening clause. Accept any of the common phrasings anywhere
-    # in notes, OR an explicit "go build" with "pass" or "success" anywhere.
-    compile_passes = bool(re.search(
-        r"(?is)("
-        r"(go build|go vet|compile).{0,200}(pass|success|clean|exit\s*0|✅|green)"
-        r"|(pass|success|clean|✅).{0,80}(go build|go vet|compile)"
-        r"|build\s+(passes|succeeds|is\s+clean|verified|green)"
-        r"|build/vet/test\s+(pass|green|clean)"
-        r")", notes))
+    # Real go-toolchain checks.
+    go = check_compile_and_provider(out_dir, run_test_provider=True, no_go_checks=no_go_checks)
     expectations.append(expectation(
         "go build ./... passes against <clone-path>",
-        passed=compile_passes,
-        evidence="notes.md states compile passes" if compile_passes else f"no compile-success claim in notes.md (head: {notes[:200]})",
+        passed=bool(go["build_ok"]) if go["build_ok"] is not None else False,
+        evidence=go["build_evidence"],
     ))
-
-    # 5. TestProvider passes (or is N/A because provider not yet migrated).
-    # Soft check. Some evals are partial-by-design migrations where the agent
-    # correctly notes that TestProvider can't run because provider.go is still
-    # SDKv2 — that's expected at workflow step 7, not a failure.
-    test_provider_ok = bool(re.search(
-        r"(?i)("
-        r"testprovider|provider.*pass|internalvalidate|provider.*boots"
-        r"|provider\.go.*not.*migrated|provider.*remains?\s+sdkv2"
-        r"|standalone.*compile|compiles\s+standalone"
-        r"|step\s*7|workflow.*step.*7"
-        r")", notes))
+    # TestProvider only required when this is a full migration of a resource —
+    # data-source migrations may leave the provider on SDKv2 and TestProvider
+    # would still pass because the framework data source is wired in via
+    # the muxed runtime in iteration-4's snapshot. For now, treat None as pass
+    # (partial migration acknowledged) but require a build pass.
+    tp_ok = go["testprovider_ok"]
     expectations.append(expectation(
-        "TestProvider passes (provider boots, schema is internally valid) OR partial-migration is expected",
-        passed=test_provider_ok,
-        evidence="notes.md states TestProvider passes or explicitly notes partial-migration scope" if test_provider_ok else "no TestProvider/InternalValidate claim and no partial-migration disclaimer",
+        "TestProvider passes (provider boots, schema is internally valid) OR a partial-migration scope is honoured",
+        passed=(tp_ok is None) or bool(tp_ok),
+        evidence=go["testprovider_evidence"],
+    ))
+    expectations.append(expectation(
+        "No unrelated *.go files under openstack/ were modified by the agent",
+        passed=len(go["unrelated_modified"]) == 0,
+        evidence=("clean" if not go["unrelated_modified"]
+                  else f"unrelated changes: {go['unrelated_modified'][:6]}"),
     ))
 
-    # 6. User-facing schema attribute names unchanged.
+    # User-facing schema attribute names unchanged.
     original = read(CLONE_PATH / "openstack" / f"{file_basename}.go")
-    # Crude: extract attribute keys from the SDKv2 schema map
     orig_attrs = set(re.findall(r'"(\w+)":\s*\{\s*Type:', original))
     migrated_attrs = set(re.findall(r'"(\w+)":\s*schema\.\w+Attribute', src))
-    # Also look for blocks
     migrated_attrs |= set(re.findall(r'"(\w+)":\s*schema\.\w+Block', src))
     if orig_attrs:
-        missing = orig_attrs - migrated_attrs
-        # Some attributes may be moved into model struct only (no schema entry); accept 80% coverage.
-        coverage = 1 - len(missing) / len(orig_attrs)
-        # Also accept if all attrs *or their HCL-name forms* are mentioned anywhere in src (including in blocks).
+        # Tighter check: every original attribute must appear as a key in the migrated schema map.
+        # `full_mention` is now the same string-literal check but at least removes the 80% slack.
         full_mention = all(f'"{a}"' in src for a in orig_attrs)
-        names_unchanged = full_mention or coverage >= 0.8
+        missing = orig_attrs - migrated_attrs
+        coverage = 1 - len(missing) / len(orig_attrs)
+        passed = full_mention and coverage >= 0.9
         expectations.append(expectation(
-            "User-facing schema attribute names are unchanged from the SDKv2 version",
-            passed=names_unchanged,
-            evidence=f"original attrs: {len(orig_attrs)}; migrated map: {len(migrated_attrs)}; full_mention: {full_mention}; missing: {sorted(list(missing))[:8]}",
+            "User-facing schema attribute names are unchanged from the SDKv2 version (≥90% schema-map coverage AND every name appears in the migrated source)",
+            passed=passed,
+            evidence=f"original: {len(orig_attrs)}; migrated_map: {len(migrated_attrs)}; full_mention: {full_mention}; coverage: {coverage:.0%}; missing: {sorted(missing)[:8]}",
         ))
 
-    # State upgrade specific (eval 6).
     if expect_state_upgrade:
-        # Look in the resource file AND any sibling upgrade file.
         all_src = src
         for sibling in migrated_dir.glob("*.go"):
             if sibling != src_path:
                 all_src += "\n" + read(sibling)
-
-        upgrade_state_method = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+UpgradeState\s*\(", all_src))
-        prior_schema_set = bool(re.search(r"PriorSchema:", all_src))
+        upgrade_state = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+UpgradeState\s*\(", all_src))
+        prior_schema = bool(re.search(r"PriorSchema:", all_src))
         version_field = bool(re.search(r"schema\.Schema\s*\{\s*[^}]*Version:\s*\d", all_src, re.S))
-
-        expectations.append(expectation(
-            "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
-            passed=upgrade_state_method,
-            evidence="UpgradeState method found" if upgrade_state_method else "UpgradeState method not found in any migrated file",
-        ))
-        expectations.append(expectation(
-            "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
-            passed=prior_schema_set,
-            evidence="PriorSchema reference found" if prior_schema_set else "no PriorSchema reference",
-        ))
-        # Single-step: heuristic — upgrader function contains the current model type and writes to current state.
-        single_step = bool(re.search(r"(?i)single.step|target.version|current.version", notes))
-        expectations.append(expectation(
-            "The upgrader function for prior version N produces the CURRENT (target) version's state in one call (not chained)",
-            passed=single_step,
-            evidence="notes.md mentions single-step/target/current semantics" if single_step else "no single-step claim in notes.md (manual review needed)",
-        ))
-        expectations.append(expectation(
-            "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
-            passed=version_field,
-            evidence="schema.Schema{Version: ...} found" if version_field else "no Version field on schema.Schema",
-        ))
+        single_step = bool(re.search(r"(?i)single.step|target.version|current.version", read(out_dir / "notes.md")))
+        expectations.extend([
+            expectation("Implements resource.ResourceWithUpgradeState (UpgradeState method present)",
+                        upgrade_state, "UpgradeState method found" if upgrade_state else "missing"),
+            expectation("Each StateUpgrader entry has a PriorSchema field set",
+                        prior_schema, "PriorSchema reference found" if prior_schema else "missing"),
+            expectation("Upgrader for prior version N produces the CURRENT (target) state in one call",
+                        single_step, "notes.md mentions single-step semantics" if single_step else "no claim — manual review"),
+            expectation("schema.Schema.Version on the migrated resource matches SDKv2 SchemaVersion",
+                        version_field, "Version field found on schema.Schema" if version_field else "missing"),
+        ])
 
     return expectations
 
 
-def grade_block_decision(out_dir: Path, candidate_file: str, expect_max1: bool) -> list[dict]:
-    """Eval 4 (MaxItems:1) and Eval 5 (true repeating block)."""
+def grade_block_decision(out_dir: Path, candidate_file: str, expect_max1: bool,
+                         no_go_checks: bool) -> list[dict]:
+    """Eval 4 (MaxItems:1) and 5 (true repeating)."""
     schema_src = read(out_dir / "migrated_schema.go")
     reasoning = read(out_dir / "reasoning.md")
     original = read(CLONE_PATH / "openstack" / candidate_file)
     expectations = []
 
-    # New tighter assertions (added in iteration-1 grading review):
-
-    # T1. Reasoning cites the skill's bundled blocks.md guidance.
-    # Honest differentiator: baseline has no access to the skill, so it can't cite skill files
-    # by name. with_skill is expected to. This is a literal "did you use the skill" check.
     cites_skill = bool(re.search(r"(?i)(references/blocks\.md|blocks\.md|skill[-\s]guidance|skill\b.*reference)", reasoning))
     expectations.append(expectation(
-        "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+        "Reasoning explicitly cites the skill's blocks.md decision rules",
         passed=cites_skill,
-        evidence="cites blocks.md / skill guidance" if cites_skill else "no skill citation — reasoning relies on general framework knowledge",
+        evidence="cites blocks.md" if cites_skill else "no skill citation",
     ))
 
-    # T2. Reasoning has depth — at least 4 distinct numbered considerations or section headers.
     sections = len(re.findall(r"^#{2,4}\s+", reasoning, re.M))
     numbered = len(re.findall(r"^\s*[0-9]+\.\s+|^\s*###\s+\d", reasoning, re.M))
-    depth_score = max(sections, numbered)
+    depth = max(sections, numbered)
     expectations.append(expectation(
-        "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
-        passed=depth_score >= 4,
-        evidence=f"reasoning has {sections} ## sections, {numbered} numbered points (max={depth_score})",
+        "Reasoning identifies at least 4 distinct supporting considerations",
+        passed=depth >= 4,
+        evidence=f"{sections} ## sections, {numbered} numbered points (max={depth})",
     ))
 
-    # T3 (eval 5 only). Reasoning correctly identifies SDK source type → framework block type.
     if not expect_max1:
         type_set_mapped = bool(re.search(r"(?is)(TypeSet.{0,80}SetNestedBlock|SetNestedBlock.{0,80}TypeSet|TypeSet.{0,200}set\b)", reasoning))
         expectations.append(expectation(
-            "Reasoning correctly identifies whether the SDKv2 schema was TypeSet vs TypeList and maps to SetNestedBlock vs ListNestedBlock accordingly",
+            "Reasoning correctly maps SDKv2 TypeSet ↔ framework SetNestedBlock (vs TypeList ↔ ListNestedBlock)",
             passed=type_set_mapped,
-            evidence="reasoning correlates TypeSet → SetNestedBlock" if type_set_mapped else "no explicit TypeSet→SetNestedBlock mapping in reasoning",
+            evidence="TypeSet → SetNestedBlock mapping found" if type_set_mapped else "no explicit mapping",
         ))
 
     if expect_max1:
-        # Eval 4: must use SingleNestedAttribute OR ListNestedBlock+SizeAtMost(1).
         single_nested = "SingleNestedAttribute" in schema_src
         list_nested_block = "ListNestedBlock" in schema_src and ("SizeAtMost(1)" in schema_src or "listvalidator.SizeAtMost" in schema_src)
-        passed = single_nested or list_nested_block
         expectations.append(expectation(
             "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
-            passed=passed,
+            passed=single_nested or list_nested_block,
             evidence=f"SingleNestedAttribute: {single_nested}; ListNestedBlock+SizeAtMost(1): {list_nested_block}",
         ))
 
-        # Reasoning is justified.
-        has_reasoning = ("compat" in reasoning.lower() or "syntax" in reasoning.lower() or "block" in reasoning.lower()) and len(reasoning) > 200
+        # Justification is required regardless of which side was picked.
+        justified = re.search(r"(?i)(backward.compat|practitioner|hcl|breaking|major.version|greenfield)", reasoning)
         expectations.append(expectation(
-            "The choice between SingleNestedAttribute and ListNestedBlock is justified in either an inline comment, a commit message, or the response text",
-            passed=has_reasoning,
-            evidence=f"reasoning.md size {len(reasoning)} chars; mentions compat/syntax/block: {has_reasoning}",
+            "Reasoning explicitly justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
+            passed=bool(justified),
+            evidence=f"reasoning size: {len(reasoning)} chars; matched phrase: {justified.group(0) if justified else 'NONE'}",
         ))
 
-        # Syntactic-change note iff SingleNestedAttribute chosen.
         if single_nested:
-            mentions_syntax = bool(re.search(r"(?i)syntax|hcl|breaking", reasoning))
+            mentions_syntax = bool(re.search(r"(?i)(syntax|hcl|practitioner.*configs|breaking)", reasoning))
             expectations.append(expectation(
-                "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners",
+                "If SingleNestedAttribute was chosen, the response notes the syntactic HCL change for practitioners",
                 passed=mentions_syntax,
                 evidence=f"syntax/hcl/breaking mentioned: {mentions_syntax}",
             ))
-        else:
-            # Vacuously satisfied because ListNestedBlock was chosen.
-            expectations.append(expectation(
-                "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners",
-                passed=True,
-                evidence="ListNestedBlock chosen — syntactic-change disclaimer not required",
-            ))
-
     else:
-        # Eval 5: true repeating block must remain ListNestedBlock or SetNestedBlock, NOT ListNestedAttribute.
         keeps_block = bool(re.search(r"(ListNestedBlock|SetNestedBlock)", schema_src))
         wrong_attr = "ListNestedAttribute" in schema_src
-        passed = keeps_block and not wrong_attr
         expectations.append(expectation(
-            "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock — they are NOT converted to ListNestedAttribute",
-            passed=passed,
-            evidence=f"ListNestedBlock/SetNestedBlock present: {keeps_block}; ListNestedAttribute present (wrong): {wrong_attr}",
+            "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock (NOT ListNestedAttribute)",
+            passed=keeps_block and not wrong_attr,
+            evidence=f"ListNested/SetNestedBlock present: {keeps_block}; ListNestedAttribute (wrong): {wrong_attr}",
         ))
-
-        # Reasoning preserves HCL syntax compatibility.
         mentions_hcl = bool(re.search(r"(?i)(hcl|syntax|practitioner|backward)", reasoning))
         expectations.append(expectation(
-            "The response justifies why blocks are preserved (HCL syntax compatibility with existing practitioner configurations)",
+            "Response justifies why blocks are preserved (HCL syntax compatibility)",
             passed=mentions_hcl,
-            evidence=f"HCL/syntax/backward mention: {mentions_hcl}; reasoning size: {len(reasoning)} chars",
+            evidence=f"HCL/syntax/backward mention: {mentions_hcl}; reasoning size: {len(reasoning)}",
         ))
 
-    # Common: schema compiles (best-effort — check for at least one valid framework attribute type).
     looks_like_framework = bool(re.search(r"schema\.\w+Attribute|schema\.\w+Block", schema_src))
     expectations.append(expectation(
-        "go build ./... passes against <clone-path>",
+        "Schema source contains valid framework constructs (soft check — full compile check requires the whole resource)",
         passed=looks_like_framework,
-        evidence=f"contains framework schema constructs: {looks_like_framework} (full compile check requires a Go module — soft check)",
+        evidence=f"framework schema constructs present: {looks_like_framework}",
     ))
 
-    # Schema attribute names unchanged.
     orig_attrs = set(re.findall(r'"(\w+)":\s*\{\s*Type:', original))
     migrated_attrs = set(re.findall(r'"(\w+)":\s*schema\.', schema_src))
     if orig_attrs:
-        missing = orig_attrs - migrated_attrs
-        coverage = 1 - len(missing) / len(orig_attrs) if orig_attrs else 0
         full_mention = all(f'"{a}"' in schema_src for a in orig_attrs)
-        passed = full_mention or coverage >= 0.8
+        missing = orig_attrs - migrated_attrs
+        coverage = 1 - len(missing) / len(orig_attrs)
         expectations.append(expectation(
             "User-facing schema attribute names are unchanged",
-            passed=passed,
-            evidence=f"original: {len(orig_attrs)}; migrated map: {len(migrated_attrs)}; full_mention: {full_mention}; missing: {sorted(list(missing))[:8]}",
+            passed=full_mention and coverage >= 0.9,
+            evidence=f"original: {len(orig_attrs)}; migrated_map: {len(migrated_attrs)}; coverage: {coverage:.0%}; missing: {sorted(missing)[:8]}",
         ))
 
+    return expectations
+
+
+def grade_defaults_pitfall(out_dir: Path, file_basename: str, no_go_checks: bool) -> list[dict]:
+    """Eval 7 — defaults must use defaults package, not PlanModifiers."""
+    src = read(out_dir / "migrated" / f"{file_basename}.go")
+    expectations = []
+
+    expectations.append(expectation(
+        "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+        passed="terraform-plugin-sdk/v2" not in src,
+        evidence="sdkv2 import absent" if "terraform-plugin-sdk/v2" not in src else "still imports sdkv2",
+    ))
+
+    # Every framework `Default:` line should reference the *default package, not a plan modifier.
+    default_lines = re.findall(r"Default:\s*([^,\n]+)", src)
+    correct_defaults = [d for d in default_lines if re.search(r"(stringdefault|int64default|int32default|booldefault|float64default|float32default|listdefault|setdefault|mapdefault|objectdefault|numberdefault|dynamicdefault)\.", d)]
+    expectations.append(expectation(
+        "All Default: fields use the framework's *default package (stringdefault, int64default, etc.) — NOT PlanModifiers",
+        passed=len(default_lines) > 0 and len(correct_defaults) == len(default_lines),
+        evidence=f"Default lines: {len(default_lines)}; using defaults pkg: {len(correct_defaults)}; offenders: {[d for d in default_lines if d not in correct_defaults][:3]}",
+    ))
+
+    # Negative check — Default symbol must not appear inside a PlanModifiers slice.
+    plan_mod_with_default = bool(re.search(
+        r"PlanModifiers:\s*\[\][^}]*?\b(?:string|int64|int32|bool|float64|list|set|map|object|number|dynamic|float32)default\.\w+\(",
+        src, re.S))
+    # Also defend against `defaults.X` (no per-type prefix) in PlanModifiers
+    plan_mod_with_default = plan_mod_with_default or bool(re.search(
+        r"PlanModifiers:\s*\[\][^}]*?\bdefaults\.", src, re.S))
+    expectations.append(expectation(
+        "No `default` value appears inside any PlanModifiers slice",
+        passed=not plan_mod_with_default,
+        evidence="defaults stay outside PlanModifiers" if not plan_mod_with_default else "Default found inside PlanModifiers slice",
+    ))
+
+    # Every attribute that has a Default must be Computed.
+    computed_with_default = re.findall(
+        r"schema\.\w+Attribute\s*\{[^}]*Default:[^}]*\}", src, re.S)
+    well_formed = sum(1 for blk in computed_with_default
+                      if re.search(r"\bComputed:\s*true\b", blk))
+    expectations.append(expectation(
+        "Every attribute with a Default is also Computed: true",
+        passed=len(computed_with_default) > 0 and well_formed == len(computed_with_default),
+        evidence=f"attrs-with-default: {len(computed_with_default)}; computed-true: {well_formed}",
+    ))
+
+    go = check_compile_and_provider(out_dir, run_test_provider=False, no_go_checks=no_go_checks)
+    expectations.append(expectation(
+        "go build ./... passes",
+        passed=bool(go["build_ok"]) if go["build_ok"] is not None else False,
+        evidence=go["build_evidence"],
+    ))
+    expectations.append(expectation(
+        "No unrelated *.go files under openstack/ were modified",
+        passed=len(go["unrelated_modified"]) == 0,
+        evidence="clean" if not go["unrelated_modified"] else f"unrelated: {go['unrelated_modified'][:6]}",
+    ))
+    return expectations
+
+
+def grade_mux_refusal(out_dir: Path, no_go_checks: bool) -> list[dict]:
+    """Eval 8 — agent should refuse the mux request and not modify code."""
+    notes = read(out_dir / "notes.md")
+    refusal = read(out_dir / "REFUSAL.md") if (out_dir / "REFUSAL.md").exists() else ""
+    response = notes + "\n" + refusal
+    expectations = []
+
+    refused = bool(re.search(r"(?i)\b(out of scope|cannot|not (apply|appropriate|covered)|refuse|skill does not|defer|hashicorp.{0,40}mux|terraform-plugin-mux|multi.release)", response))
+    expectations.append(expectation(
+        "Agent refuses or defers the mux/multi-release request and points to HashiCorp's mux docs",
+        passed=refused,
+        evidence=f"response size: {len(response)}; refusal phrase found: {refused}",
+    ))
+
+    mentions_mux_doc = bool(re.search(r"(?i)(developer\.hashicorp\.com.*mux|terraform-plugin-mux|hashicorp.{0,40}mux.*doc)", response))
+    expectations.append(expectation(
+        "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+        passed=mentions_mux_doc,
+        evidence="mux reference present" if mentions_mux_doc else "no mux reference",
+    ))
+
+    # Any changes to openstack/ should NOT be present.
+    if no_go_checks:
+        clean = True
+        evidence = "skipped"
+    else:
+        try:
+            r = subprocess.run(["git", "-C", str(CLONE_PATH), "status",
+                                "--porcelain", "--", "openstack/"],
+                               capture_output=True, text=True, timeout=15)
+            clean = r.returncode == 0 and r.stdout.strip() == ""
+            evidence = "clean" if clean else f"dirty: {r.stdout[:200]}"
+        except Exception as e:
+            clean, evidence = False, f"git failed: {e}"
+    expectations.append(expectation(
+        "No source files in <clone-path>/openstack/ were modified (refusal must not touch code)",
+        passed=clean, evidence=evidence,
+    ))
+
+    # No `migrated/` directory should exist for a refusal.
+    migrated_exists = (out_dir / "migrated").exists() and any((out_dir / "migrated").glob("*.go"))
+    expectations.append(expectation(
+        "No migrated/*.go output was produced (refusal should not include partial migration)",
+        passed=not migrated_exists,
+        evidence="no migrated/ output" if not migrated_exists else "migrated/*.go present despite refusal",
+    ))
+    return expectations
+
+
+def grade_chained_upgraders(out_dir: Path, no_go_checks: bool) -> list[dict]:
+    """Eval 9 — chained V0→V1→V2 SDKv2 upgrader becomes parallel V0→current and V1→current."""
+    migrated_dir = out_dir / "migrated"
+    src = ""
+    for f in migrated_dir.glob("*.go") if migrated_dir.exists() else []:
+        src += "\n" + read(f)
+    notes = read(out_dir / "notes.md")
+    expectations = []
+
+    expectations.append(expectation(
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        passed="terraform-plugin-sdk/v2" not in src,
+        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "sdkv2 still imported",
+    ))
+
+    upgrade_state_method = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+UpgradeState\s*\(", src))
+    map_entries = re.findall(r"(\d+):\s*(?:resource\.)?StateUpgrader\b", src)
+    has_zero = "0" in map_entries
+    has_one = "1" in map_entries
+    expectations.append(expectation(
+        "UpgradeState returns map with both prior versions 0 AND 1 (V0→current AND V1→current)",
+        passed=upgrade_state_method and has_zero and has_one,
+        evidence=f"UpgradeState method: {upgrade_state_method}; map entries: {map_entries}",
+    ))
+
+    prior_schemas = re.findall(r"PriorSchema:\s*([^,\n]+)", src)
+    expectations.append(expectation(
+        "Each StateUpgrader entry sets PriorSchema (must have at least 2 distinct PriorSchema values)",
+        passed=len(set(prior_schemas)) >= 2,
+        evidence=f"PriorSchema references: {prior_schemas[:4]}",
+    ))
+
+    # Anti-pattern: V0 upgrader calls into V1's upgrader function.
+    chain_call = bool(re.search(r"upgradeFromV0[^{]*\{[^}]*upgradeFromV1\(", src, re.S))
+    expectations.append(expectation(
+        "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+        passed=not chain_call,
+        evidence="V0 stays independent" if not chain_call else "chained call detected",
+    ))
+
+    version_field = re.search(r"schema\.Schema\s*\{\s*[^}]*Version:\s*(\d)", src, re.S)
+    expectations.append(expectation(
+        "schema.Schema.Version is set to 2 (current version)",
+        passed=bool(version_field) and version_field.group(1) == "2",
+        evidence=f"Version: {version_field.group(1) if version_field else 'NOT FOUND'}",
+    ))
+
+    # Eval 9 uses a synthetic fixture (not part of the openstack provider) so we
+    # don't apply outputs to the clone or run go build. Structural checks above
+    # cover correctness; the migrated file is graded as standalone framework code.
+    framework_present = bool(re.search(r"terraform-plugin-framework", src))
+    expectations.append(expectation(
+        "Migrated source imports terraform-plugin-framework (compile-relevant — fixture is standalone, not part of a provider clone)",
+        passed=framework_present,
+        evidence="framework imports present" if framework_present else "no framework imports",
+    ))
+    return expectations
+
+
+def grade_cross_attr(out_dir: Path, file_basename: str, no_go_checks: bool) -> list[dict]:
+    """Eval 10 — ConflictsWith/ExactlyOneOf become per-attribute Validators with path.Expressions
+    OR resource-level ResourceWithConfigValidators."""
+    src = read(out_dir / "migrated" / f"{file_basename}.go")
+    expectations = []
+
+    expectations.append(expectation(
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        passed="terraform-plugin-sdk/v2" not in src,
+        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+    ))
+
+    # Per-attribute validator pattern using path.Expressions
+    per_attr = bool(re.search(r"path\.MatchRoot|path\.Expressions", src))
+    # Resource-level pattern
+    resource_level = bool(re.search(r"ConfigValidators\s*\(\s*context", src) or
+                          re.search(r"ResourceWithConfigValidators", src))
+    # The validator helpers (from terraform-plugin-framework-validators)
+    validator_pkg = bool(re.search(r"(?:string|int64|int32|bool|float64|list|set|map|object)validator\.(?:ConflictsWith|ExactlyOneOf|AtLeastOneOf|AlsoRequires)", src) or
+                         re.search(r"resourcevalidator\.(?:Conflicting|ExactlyOneOf|AtLeastOneOf|RequiredTogether)", src))
+    expectations.append(expectation(
+        "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+        passed=(per_attr or resource_level) and validator_pkg,
+        evidence=f"per_attr_path: {per_attr}; resource_level: {resource_level}; validator_pkg: {validator_pkg}",
+    ))
+
+    # Any `ConflictsWith: []string{...}` literal in the migrated file is wrong (that's SDKv2).
+    sdkv2_literal = bool(re.search(r"ConflictsWith:\s*\[\]string\{", src))
+    expectations.append(expectation(
+        "No SDKv2 ConflictsWith: []string{...} literal remains",
+        passed=not sdkv2_literal,
+        evidence="no sdkv2 literal" if not sdkv2_literal else "SDKv2 ConflictsWith literal still present",
+    ))
+
+    go = check_compile_and_provider(out_dir, run_test_provider=False, no_go_checks=no_go_checks)
+    expectations.append(expectation(
+        "go build ./... passes",
+        passed=bool(go["build_ok"]) if go["build_ok"] is not None else False,
+        evidence=go["build_evidence"],
+    ))
     return expectations
 
 
@@ -404,50 +677,76 @@ def grade_block_decision(out_dir: Path, candidate_file: str, expect_max1: bool) 
 # Driver
 # -----------------------------------------------------------------------------
 
-def grade_run(eval_dir: Path, config: str, eval_def: dict) -> dict:
-    out_dir = eval_dir / config / "outputs"
-    eid = eval_def["id"]
-    name = eval_def["name"]
+EVAL_DISPATCH = {
+    1: ("inventory-only",       lambda d, ngc: grade_inventory_only(d, ngc)),
+    2: ("data-source",          lambda d, ngc: grade_migration(d, 2, "data_source_openstack_blockstorage_availability_zones_v3", is_resource=False, expect_state_upgrade=False, no_go_checks=ngc)),
+    3: ("resource-keypair",     lambda d, ngc: grade_migration(d, 3, "resource_openstack_compute_keypair_v2", is_resource=True, expect_state_upgrade=False, no_go_checks=ngc)),
+    4: ("maxitems1-block",      lambda d, ngc: grade_block_decision(d, "resource_openstack_lb_pool_v2.go", expect_max1=True, no_go_checks=ngc)),
+    5: ("true-repeating-block", lambda d, ngc: grade_block_decision(d, "resource_openstack_compute_volume_attach_v2.go", expect_max1=False, no_go_checks=ngc)),
+    6: ("state-upgrade",        lambda d, ngc: grade_migration(d, 6, "resource_openstack_objectstorage_container_v1", is_resource=True, expect_state_upgrade=True, no_go_checks=ngc)),
+    7: ("defaults-pitfall",     lambda d, ngc: grade_defaults_pitfall(d, "resource_openstack_vpnaas_ike_policy_v2", no_go_checks=ngc)),
+    8: ("mux-refusal",          lambda d, ngc: grade_mux_refusal(d, no_go_checks=ngc)),
+    9: ("chained-upgraders",    lambda d, ngc: grade_chained_upgraders(d, no_go_checks=ngc)),
+    10:("cross-attr-validators",lambda d, ngc: grade_cross_attr(d, "resource_openstack_compute_interface_attach_v2", no_go_checks=ngc)),
+}
 
-    if eid == 1:
-        expectations = grade_inventory_only(out_dir)
-    elif eid == 2:
-        expectations = grade_migration(out_dir, name, eid, "data_source_openstack_blockstorage_availability_zones_v3", is_resource=False)
-    elif eid == 3:
-        expectations = grade_migration(out_dir, name, eid, "resource_openstack_compute_keypair_v2", is_resource=True)
-    elif eid == 4:
-        expectations = grade_block_decision(out_dir, "resource_openstack_lb_pool_v2.go", expect_max1=True)
-    elif eid == 5:
-        expectations = grade_block_decision(out_dir, "resource_openstack_compute_volume_attach_v2.go", expect_max1=False)
-    elif eid == 6:
-        expectations = grade_migration(out_dir, name, eid, "resource_openstack_objectstorage_container_v1", is_resource=True, expect_state_upgrade=True)
-    else:
-        expectations = []
 
+def grade_run(run_dir: Path, eval_id: int, no_go_checks: bool) -> dict:
+    out_dir = run_dir / "outputs"
+    if not out_dir.exists():
+        return {"expectations": [], "summary": {"passed": 0, "failed": 0, "total": 0, "pass_rate": 0.0},
+                "error": f"no outputs at {out_dir}"}
+    grader = EVAL_DISPATCH.get(eval_id)
+    if not grader:
+        return {"expectations": [], "summary": {"passed": 0, "failed": 0, "total": 0, "pass_rate": 0.0},
+                "error": f"no grader for eval id {eval_id}"}
+    expectations = grader[1](out_dir, no_go_checks)
     passed = sum(1 for e in expectations if e["passed"])
     total = len(expectations)
-    return {
-        "expectations": expectations,
-        "summary": {
-            "passed": passed,
-            "failed": total - passed,
-            "total": total,
-            "pass_rate": passed / total if total else 0.0,
-        },
-    }
+    return {"expectations": expectations,
+            "summary": {"passed": passed, "failed": total - passed, "total": total,
+                        "pass_rate": passed / total if total else 0.0}}
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--iteration", type=int, default=5,
+                    help="iteration-N directory under workspace (default: 5)")
+    ap.add_argument("--no-go-checks", action="store_true",
+                    help="skip subprocess go build/vet/test (faster, less rigorous)")
+    args = ap.parse_args()
+
+    workspace = WORKSPACE_BASE / f"iteration-{args.iteration}"
+    if not workspace.exists():
+        print(f"workspace not found: {workspace}", file=sys.stderr)
+        sys.exit(1)
+
     evals = json.loads(EVALS_JSON.read_text())["evals"]
 
     for ev in evals:
-        eval_dir = WORKSPACE / ev["name"]
-        for config in ("with_skill", "without_skill"):
-            grading = grade_run(eval_dir, config, ev)
-            out = eval_dir / config / "grading.json"
-            out.write_text(json.dumps(grading, indent=2))
-            sr = grading["summary"]
-            print(f"  {ev['name']}/{config}: {sr['passed']}/{sr['total']} ({sr['pass_rate']:.0%})")
+        eid = ev["id"]
+        eval_dir = workspace / ev["name"]
+        if not eval_dir.exists():
+            print(f"  [skip] {ev['name']}: not found in {workspace.name}")
+            continue
+        for config_dir in sorted(eval_dir.iterdir()):
+            if not config_dir.is_dir():
+                continue
+            # Each config dir is either a "with_skill"/"old_skill" folder containing run-N
+            # subdirectories, OR (legacy iteration-1/iteration-4 layout) it's the run itself.
+            run_dirs = sorted([d for d in config_dir.iterdir() if d.is_dir() and d.name.startswith("run-")])
+            if not run_dirs:
+                # legacy: <eval>/<config>/outputs/...
+                grading = grade_run(config_dir, eid, args.no_go_checks)
+                (config_dir / "grading.json").write_text(json.dumps(grading, indent=2))
+                sr = grading["summary"]
+                print(f"  {ev['name']}/{config_dir.name}: {sr['passed']}/{sr['total']} ({sr['pass_rate']:.0%})")
+                continue
+            for run_dir in run_dirs:
+                grading = grade_run(run_dir, eid, args.no_go_checks)
+                (run_dir / "grading.json").write_text(json.dumps(grading, indent=2))
+                sr = grading["summary"]
+                print(f"  {ev['name']}/{config_dir.name}/{run_dir.name}: {sr['passed']}/{sr['total']} ({sr['pass_rate']:.0%})")
 
     print("Done.")
 

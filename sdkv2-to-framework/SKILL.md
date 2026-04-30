@@ -139,9 +139,13 @@ The pointer above is "see `references/blocks.md`" but the decision is judgment-h
 },
 ```
 
-**Decision rule**:
-- Mature resource with practitioner configs already using `persistence { ... }` block syntax, and **no major-version bump** in this release → keep as block.
-- Greenfield resource OR explicit major-version bump that documents the breaking change → convert to single nested attribute.
+**Decision rule** — answer in this order:
+
+1. **Are there practitioner configs in the wild using block syntax (`persistence { ... }`) for this attribute?** If you can confirm yes (production usage, examples in the docs, public modules referencing it), keep as block — Output A. Switching is a breaking HCL change.
+2. **Is this a major-version bump that already documents breaking changes, OR a greenfield resource with no users yet?** Convert to single nested attribute — Output B. The attribute syntax is the modern framework idiom and is what greenfield resources should use.
+3. **Can you not confirm either?** (You can't see the resource's usage; the README doesn't show examples.) Keep as block (Output A) and write a one-line caveat in the per-resource checklist row: "kept as block; switch to single nested attribute on next major version once usage is confirmed safe."
+
+The reason the order matters: switching block→attribute is a *practitioner-visible* HCL change — `persistence { ... }` becomes `persistence = { ... }`. That's fine for greenfield, breaking for mature. So the question to answer first is "does breaking the syntax matter here?", not "what does the framework prefer?".
 
 **Output A — backward-compat (most common during migration)**:
 ```go
@@ -165,7 +169,7 @@ Attributes: map[string]schema.Attribute{
 },
 ```
 
-If you're unsure which side of the rule you're on, default to Output A (block, backward-compat) and document the caveat in the changelog. Read `references/blocks.md` for the full decision tree including `MinItems > 0` true repeating blocks.
+Read `references/blocks.md` for the full decision tree including `MinItems > 0` true repeating blocks.
 </example>
 
 ### Think before editing

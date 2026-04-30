@@ -8,7 +8,15 @@
 # the check fails.
 #
 # Usage:
-#   verify_tests.sh <provider-repo-path> [--migrated-files "f1.go f2.go ..."] [--with-acc]
+#   verify_tests.sh <provider-repo-path> --migrated-files "f1.go f2.go ..." [--with-acc]
+#   verify_tests.sh <provider-repo-path> --no-migrated-files [--with-acc]   (only for fresh-baseline runs)
+#
+# --migrated-files is REQUIRED when validating a migration. The flag drives the
+# negative gate; without it, a no-op run that touched zero files would pass all
+# other gates and look successful. If you really need to run the static layers
+# without a migration in progress (e.g., establishing the baseline before step 1),
+# pass --no-migrated-files explicitly to acknowledge the negative gate is being
+# skipped on purpose.
 #
 # Layers (each must pass before the next):
 #   1. go build ./...
@@ -29,15 +37,35 @@ fi
 
 REPO="$1"; shift || true
 MIGRATED_FILES=""
+NO_MIGRATED_FILES=0
 WITH_ACC=0
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --migrated-files) MIGRATED_FILES="$2"; shift 2 ;;
-        --with-acc)       WITH_ACC=1; shift ;;
+        --migrated-files)    MIGRATED_FILES="$2"; shift 2 ;;
+        --no-migrated-files) NO_MIGRATED_FILES=1; shift ;;
+        --with-acc)          WITH_ACC=1; shift ;;
         *) echo "unknown arg: $1" >&2; exit 1 ;;
     esac
 done
+
+if [ -z "$MIGRATED_FILES" ] && [ "$NO_MIGRATED_FILES" -ne 1 ]; then
+    cat >&2 <<'EOF'
+ERROR: --migrated-files is required when validating a migration.
+
+Without it, a no-op run that touched zero files would pass all gates and look
+like a successful migration — that is the exact failure mode the negative gate
+exists to prevent.
+
+Pass it as a single space-separated argument:
+  verify_tests.sh <repo> --migrated-files "internal/provider/resource_foo.go internal/provider/resource_bar.go"
+
+If you intentionally want to run the static layers without a migration in
+progress (rare; e.g., establishing the SDKv2 baseline before step 1), pass
+--no-migrated-files to acknowledge that the negative gate is skipped on purpose.
+EOF
+    exit 2
+fi
 
 if [ ! -d "$REPO" ]; then
     echo "not a directory: $REPO" >&2
@@ -82,9 +110,7 @@ if [ -n "$MIGRATED_FILES" ]; then
     fi
     echo "(all $(echo "$MIGRATED_FILES" | wc -w | tr -d ' ') migrated files clean)" >&2
 else
-    step "5/6 Negative gate skipped (no --migrated-files supplied)"
-    echo "WARNING: without --migrated-files, a no-op run passes all gates." >&2
-    echo "Always pass --migrated-files when validating an actual migration." >&2
+    step "5/6 Negative gate skipped — explicit --no-migrated-files acknowledged"
 fi
 
 if [ "$WITH_ACC" -eq 1 ]; then

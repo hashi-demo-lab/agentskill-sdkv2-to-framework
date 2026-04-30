@@ -21,6 +21,44 @@
 
 `TF_LOG=warn` runs of the existing test suite will surface most of these. Fix in SDKv2 form first; do not carry the bug into the framework.
 
+#### Concrete grep recipes (run all four against the provider before step 3)
+
+These find the four common static patterns that become hard errors under the framework. Run from the provider root.
+
+```sh
+# 1. Optional + Computed without UseStateForUnknown — every plan shows
+#    "(known after apply)" and may trigger spurious replacements downstream.
+#    Under SDKv2 this is silent; under the framework it surfaces as
+#    "Provider produced inconsistent result after apply" if the value drifts.
+grep -rn -B2 -A6 'Optional:\s*true' --include='*.go' . \
+  | grep -B5 -A5 'Computed:\s*true' \
+  | grep -L 'UseStateForUnknown' \
+  || true   # files matching the first two but missing the third
+
+# 2. Default on a non-Computed attribute. The framework requires Computed: true
+#    for any attribute with a Default; SDKv2 didn't enforce it.
+grep -rn -B5 -A1 'Default:' --include='*.go' . \
+  | grep -B5 'Default:' \
+  | awk '/Default:/ {found=1} /Computed:\s*true/ {found=0} END {exit !found}'
+
+# 3. TypeList + MaxItems: 1 with no Elem (or empty Elem). The framework's
+#    block-vs-attribute decision needs the nested type to make a call;
+#    SDKv2 silently treated this as a no-op block.
+grep -rn -B1 -A6 'Type:\s*schema\.TypeList' --include='*.go' . \
+  | grep -B3 -A3 'MaxItems:\s*1' \
+  | grep -L 'Elem:'
+
+# 4. ForceNew on a Computed attribute. Framework rejects this combination
+#    at schema validation time; SDKv2 accepted it silently.
+grep -rn -B5 -A1 'ForceNew:\s*true' --include='*.go' . \
+  | grep -B5 'ForceNew:' \
+  | awk '/Computed:\s*true/ {c=1} /ForceNew:\s*true/ {if (c) print; c=0}'
+```
+
+If any of the four return matches, fix in SDKv2 form first. Each one is a one-line correction that costs minutes now and hours later (the framework error often points at a downstream symptom, not the root cause).
+
+For runtime data-consistency, also run the existing acceptance test suite with `TF_LOG=warn TF_ACC=1 go test ./... 2>&1 | grep -i 'inconsistent\|warning'` — surfaces the dynamic offenders the static greps can't see.
+
 ### 3. Serve your provider via the framework.
 This is the `main.go` swap. Decide protocol v5 vs v6 here — see `protocol-versions.md`. Default v6. The provider doesn't yet have any framework resources, but it now serves through the framework.
 

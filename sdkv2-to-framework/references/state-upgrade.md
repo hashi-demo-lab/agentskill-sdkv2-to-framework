@@ -7,6 +7,8 @@
 - For data extraction: read the prior state into a typed model that matches `PriorSchema`, transform, write a typed model that matches the *current* schema.
 - Implement `resource.ResourceWithUpgradeState` and add `var _ resource.ResourceWithUpgradeState = &thingResource{}` so a missing method is a compile error.
 
+> **The chained-habit anti-pattern.** If you find yourself writing `func upgradeFromV0(...) { ...; return upgradeFromV1(...) }` (or any variation that calls one upgrader from inside another), stop. The framework calls each map entry *independently* with the matching `PriorSchema`. There is no chain. State that lands at the V0 upgrader was never seen by the V1 upgrader. Compose the *transformations* by hand inside V0's body — but the V0 entry must directly produce a current-schema state value, never an intermediate-schema value.
+
 ## Why single-step matters
 
 In SDKv2, chained upgraders worked because each one could assume the previous had already run. So V0→V1 didn't need to know about V2; V1→V2 didn't need to know about V0. The chain composed.

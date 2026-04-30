@@ -24,30 +24,22 @@
 
 ## Per-resource checklist
 
-Repeat one block per resource and one per data source. Mark each box only after the resource passes `verify_tests.sh --migrated-files <file>`.
+Repeat one row per resource and per data source. For each, fill the audit-flagged hooks (state upgrader, MaxItems:1 block, custom importer, timeouts, sensitive/write-only) only when present. Mark each row only after `verify_tests.sh --migrated-files <file>` exits 0.
 
 ### {{resource_name}}
 
 - [ ] Tests written/updated and run *red* (workflow step 7)
-- [ ] Schema converted (`references/schema.md`)
-- [ ] CRUD methods implemented (`references/resources.md`)
-- [ ] Validators translated (`references/validators.md`)
-- [ ] Plan modifiers + defaults (note: `Default` is *not* a plan modifier) (`references/plan-modifiers.md`)
-- [ ] State upgraders translated, if applicable — single-step semantics (`references/state-upgrade.md`)
-- [ ] Import method implemented, if applicable (`references/import.md`)
-- [ ] Timeouts wired up, if applicable (`references/timeouts.md`)
-- [ ] Sensitive / write-only attributes handled (`references/sensitive-and-writeonly.md`)
+- [ ] Schema + CRUD migrated (per-element refs in `SKILL.md` table)
+- [ ] Audit-flagged hooks handled (state upgrader / MaxItems:1 / importer / timeouts / sensitive — only those present)
 - [ ] Tests pass green (`verify_tests.sh` exit 0)
 - [ ] Negative gate satisfied — file no longer imports `terraform-plugin-sdk/v2`
 
 ### {{data_source_name}}
 
 - [ ] Tests written/updated and run *red*
-- [ ] Schema converted (`references/data-sources.md`)
-- [ ] `Read` method implemented
-- [ ] Validators translated
-- [ ] Tests pass green
-- [ ] Negative gate satisfied
+- [ ] Schema + `Read` migrated (`references/data-sources.md`)
+- [ ] Validators translated (only if SDKv2 had any)
+- [ ] Tests pass green; negative gate satisfied
 
 ## Final sweep (before release)
 

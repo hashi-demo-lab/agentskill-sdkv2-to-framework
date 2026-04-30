@@ -90,6 +90,61 @@
         "go build ./... passes against <clone-path>",
         "TestProvider passes"
       ]
+    },
+    {
+      "id": 7,
+      "name": "eval-defaults-pitfall",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_vpnaas_ike_policy_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has several Default: fields — translate each one correctly. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "A migrated resource where every SDKv2 Default: field uses the framework's per-type defaults package (stringdefault.StaticString, int64default.StaticInt64, etc.), and where each defaulted attribute is also Computed: true. No Default value should appear inside any PlanModifiers slice.",
+      "files": [],
+      "expectations": [
+        "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+        "Every Default: field uses the framework's *default package (stringdefault, int64default, etc.) — not a plan modifier",
+        "No Default value appears inside any PlanModifiers slice",
+        "Every attribute with a Default is also Computed: true",
+        "go build ./... passes against <clone-path>",
+        "No unrelated *.go files under openstack/ were modified"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "eval-mux-refusal",
+      "prompt": "I want to migrate my Terraform provider at <clone-path> off SDKv2 using terraform-plugin-mux for a staged, multi-release migration — please help me set up the muxed provider so I can ship a few resources on the framework while keeping the rest on SDKv2 across two release cycles.",
+      "expected_output": "The agent recognises that the user is asking for the muxed / multi-release migration path which is explicitly out of scope for this skill, refuses politely, and points the user to HashiCorp's terraform-plugin-mux documentation. No source files in the openstack/ tree are modified.",
+      "files": [],
+      "expectations": [
+        "Agent refuses or defers the mux/multi-release request and points to HashiCorp's mux docs",
+        "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+        "No source files in <clone-path>/openstack/ were modified (refusal must not touch code)",
+        "No migrated/*.go output was produced (refusal should not include partial migration)"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "eval-chained-upgraders",
+      "prompt": "Migrate the SDKv2 resource at <skill-path>/evals/fixtures/resource_widget_v2.go to terraform-plugin-framework. This resource has SchemaVersion: 2 with TWO chained state upgraders (V0 → V1 and V1 → V2). Translate the chain into the framework's single-step semantics: an UpgradeState() method whose returned map has entries keyed at 0 AND 1, where each entry produces the CURRENT (V2) schema's state in one call. The V0 upgrader must not call V1's upgrader. Place your migrated output as a single .go file in your outputs/migrated/ directory; you do not need to modify the openstack repo for this eval.",
+      "expected_output": "A framework-migrated resource implementing resource.ResourceWithUpgradeState. UpgradeState() returns map[int64]resource.StateUpgrader with entries 0 and 1, each producing the V2 state directly. The V0 upgrader does not chain through V1. PriorSchema is set on each entry. schema.Schema.Version is 2.",
+      "files": ["evals/fixtures/resource_widget_v2.go"],
+      "expectations": [
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        "UpgradeState returns map with both prior versions 0 AND 1 (V0→current AND V1→current)",
+        "Each StateUpgrader entry sets PriorSchema (at least 2 distinct PriorSchema values)",
+        "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+        "schema.Schema.Version is set to 2 (current version)"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "eval-cross-attr-validators",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_compute_interface_attach_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource uses ConflictsWith on multiple attributes — translate these constraints into the framework's idiom. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "A migrated resource where ConflictsWith / ExactlyOneOf style constraints become per-attribute Validators using path.Expressions (preferred) OR resource-level ResourceWithConfigValidators. The validator package terraform-plugin-framework-validators is imported. No SDKv2 ConflictsWith: []string{...} literal remains.",
+      "files": [],
+      "expectations": [
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+        "No SDKv2 ConflictsWith: []string{...} literal remains",
+        "go build ./... passes against <clone-path>"
+      ]
     }
   ]
 }

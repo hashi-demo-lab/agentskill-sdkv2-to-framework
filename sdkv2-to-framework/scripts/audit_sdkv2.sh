@@ -156,6 +156,10 @@ RULE_LABELS = {
     "state-func":                   "StateFunc",
     "sensitive":                    "Sensitive: true",
     "deprecated-attr":              "Deprecated attribute",
+    "schema-default":               "Default: ... (defaults package, NOT PlanModifiers)",
+    "cross-attr-constraint":        "ConflictsWith / ExactlyOneOf / AtLeastOneOf / RequiredWith",
+    "set-hash-func":                "Set: hashFunc (drop in framework)",
+    "migrate-state-legacy":         "MigrateState (legacy SDKv2 v1.x)",
     "importer":                     "Importer",
     "timeouts":                     "Timeouts",
     "state-upgraders":              "StateUpgraders",
@@ -186,12 +190,14 @@ ranked = sorted(per_file.items(), key=lambda x: -score(x[1]))[:max_files]
 nmr_signals = {
     "max-items-1-nested-block": "MaxItems:1 (block-vs-nested-attribute decision)",
     "state-upgraders":          "StateUpgraders/SchemaVersion (single-step semantics)",
+    "migrate-state-legacy":     "MigrateState (upgrade to StateUpgraders first)",
     "importer":                 "custom Importer (composite ID parsing?)",
     "timeouts":                 "Timeouts (separate framework package)",
     "customize-diff":           "CustomizeDiff (becomes ModifyPlan)",
     "state-func":               "StateFunc (becomes custom type)",
     "diff-suppress-func":       "DiffSuppressFunc (analyse intent)",
     "nested-elem-resource":     "nested Elem &Resource (block-vs-nested decision)",
+    "cross-attr-constraint":    "ConflictsWith/ExactlyOneOf/etc. (validator routing decision)",
 }
 
 needs_review = []
