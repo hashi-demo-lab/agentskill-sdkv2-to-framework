@@ -1,0 +1,25 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Password is marked Sensitive AND remains Computed; WriteOnly is NOT applied (decision rule: Terraform needs to read it back)",
+      "passed": true,
+      "evidence": "\"password\" matches expected properties"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  }
+}
