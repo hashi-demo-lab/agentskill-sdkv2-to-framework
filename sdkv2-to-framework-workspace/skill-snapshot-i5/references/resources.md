@@ -164,54 +164,6 @@ Add by satisfying additional interfaces — declare with `var _ resource.Resourc
 
 Framework v1.9+ added `resp.Deferred = &resource.Deferred{Reason: ...}` for the case where a resource can't be created/read yet because another resource hasn't propagated (e.g., IAM permission propagation delays). Niche and still marked experimental — only reach for it when retry-on-next-plan is the right semantic. Most providers won't need this.
 
-## Replacing `retry.StateChangeConf` (no framework equivalent)
-
-SDKv2 providers commonly use `helper/retry.StateChangeConf.WaitForStateContext` for "wait until the API reports state X" loops (resource ready, attachment detached, etc.). The framework has no equivalent helper — but the pattern itself is just a context-aware ticker poll, which you can write inline in 20 lines. Do NOT keep importing `terraform-plugin-sdk/v2/helper/retry` from migrated files; it fails the negative gate, and the in-file replacement is straightforward.
-
-```go
-// Replaces retry.StateChangeConf{Pending: ..., Target: ..., Refresh: f}.WaitForStateContext(ctx).
-// Returns the final value (so the caller can extract API response details) or an error.
-func waitForState(
-    ctx context.Context,
-    refresh func() (any, string, error),
-    pending, target []string,
-    pollInterval, timeout time.Duration,
-) (any, error) {
-    deadline := time.Now().Add(timeout)
-    ticker := time.NewTicker(pollInterval)
-    defer ticker.Stop()
-
-    for {
-        v, state, err := refresh()
-        if err != nil {
-            return v, err
-        }
-        if slices.Contains(target, state) {
-            return v, nil
-        }
-        if !slices.Contains(pending, state) {
-            return v, fmt.Errorf("unexpected state %q (pending=%v, target=%v)", state, pending, target)
-        }
-        if time.Now().After(deadline) {
-            return v, fmt.Errorf("timeout after %s waiting for %v (last state=%q)", timeout, target, state)
-        }
-        select {
-        case <-ctx.Done():
-            return v, ctx.Err()
-        case <-ticker.C:
-        }
-    }
-}
-```
-
-Call sites change shape only slightly — the SDKv2 `Refresh: func() (interface{}, string, error)` is identical to the inline `refresh func() (any, string, error)` (Go's type identity rules make `retry.StateRefreshFunc` assignable here, so existing helpers compile unchanged if they use the same signature).
-
-If the existing SDKv2 sibling helpers (e.g., `resourceFooAttachFunc`, `resourceFooDetachFunc`) return `retry.StateRefreshFunc`, you have two options:
-1. **Quick**: keep their signature; Go's identity rules accept the named type wherever an unnamed `func() (any, string, error)` is expected.
-2. **Clean**: change their declared return type to `func() (any, string, error)` so neither the resource file nor the helper file imports `helper/retry`. Preferred when migrating multiple resources in the same package.
-
-Pick (1) when you're migrating a single resource and the helpers serve only that resource; (2) when the helpers are shared and the broader migration will sweep them.
-
 ## Things you no longer need
 
 - `Set: schema.HashString` (or any `SchemaSetFunc`) — gone, framework handles uniqueness.

@@ -145,51 +145,6 @@
         "No SDKv2 ConflictsWith: []string{...} literal remains",
         "go build ./... passes against <clone-path>"
       ]
-    },
-    {
-      "id": 11,
-      "name": "eval-identity",
-      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_lb_member_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource uses a composite-ID importer (pool_id/member_id). Take this opportunity to add a framework identity schema (ResourceWithIdentity) so practitioners on Terraform 1.12+ can use `import { identity = {...} }` blocks. Keep the legacy `terraform import myprov_thing.foo <pool>/<member>` path working too. Update the corresponding test file. Don't migrate anything else in the repo.",
-      "expected_output": "A migrated resource that implements both resource.Resource and resource.ResourceWithIdentity. IdentitySchema returns identityschema.Schema with pool_id and member_id (or equivalent) attributes marked RequiredForImport. ImportState handles BOTH paths: when req.ID is non-empty, it parses the legacy '<pool>/<member>' string; when req.ID is empty (modern import block), it copies identity attributes into state. resp.Identity is also set in Create/Update/Read so identity stays in sync with state.",
-      "files": [],
-      "expectations": [
-        "Migrated file no longer imports terraform-plugin-sdk/v2",
-        "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
-        "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
-        "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
-        "Identity is set in Create / Update / Read (resp.Identity.Set call present)",
-        "go build ./... passes against <clone-path>"
-      ]
-    },
-    {
-      "id": 12,
-      "name": "eval-write-only",
-      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_db_user_v1.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. This migration is part of a major version bump (so practitioner-visible breaking changes to credentials handling are acceptable). The 'password' field is currently Sensitive: true but stored in state — convert it to a WriteOnly attribute (Sensitive AND WriteOnly) since Terraform doesn't need to read it back. Update the corresponding test file, including ImportStateVerifyIgnore for the write-only field. Don't migrate anything else in the repo.",
-      "expected_output": "A migrated resource where the password attribute carries both Sensitive: true and WriteOnly: true. The attribute is Required (or Optional) but NOT Computed (WriteOnly + Computed is forbidden). In Create/Update, the value is read from req.Config (not req.Plan) since it is not in state. The test file includes ImportStateVerifyIgnore for the write-only attribute so import-verify steps pass.",
-      "files": [],
-      "expectations": [
-        "Migrated file no longer imports terraform-plugin-sdk/v2",
-        "Password attribute has BOTH Sensitive: true and WriteOnly: true",
-        "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
-        "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
-        "Test file includes ImportStateVerifyIgnore listing the password field",
-        "go build ./... passes against <clone-path>"
-      ]
-    },
-    {
-      "id": 13,
-      "name": "eval-timeouts",
-      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_db_database_v1.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a Timeouts field with Create and Delete durations — translate it to the framework's terraform-plugin-framework-timeouts package, preserving the existing 'timeouts { create = ... }' block syntax in HCL. Update the corresponding test file. Don't migrate anything else in the repo.",
-      "expected_output": "A migrated resource that imports terraform-plugin-framework-timeouts/resource/timeouts and uses timeouts.Block(ctx, timeouts.Opts{Create: true, Delete: true}) inside the schema's Blocks map (block syntax, not Attributes). The resource's typed model includes a Timeouts timeouts.Value field. Create and Delete CRUD methods read the timeout via plan.Timeouts.Create(ctx, default) / plan.Timeouts.Delete(...) and apply it via context.WithTimeout.",
-      "files": [],
-      "expectations": [
-        "Migrated file no longer imports terraform-plugin-sdk/v2",
-        "Imports terraform-plugin-framework-timeouts/resource/timeouts",
-        "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) — NOT timeouts.Attributes",
-        "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
-        "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
-        "go build ./... passes against <clone-path>"
-      ]
     }
   ]
 }

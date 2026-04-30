@@ -49,8 +49,6 @@ Terraform queries the provider's identity schema, validates the user-supplied id
 
 ## New shape (framework, identity-aware)
 
-> **The two import paths.** A migrated `ImportState` MUST handle both. `req.ID` is non-empty for the legacy `terraform import myprov_thing.foo us-east-1/abc123` form (Terraform <1.12 or anyone using the CLI). `req.Identity` is populated for the modern `import { identity = {...} }` block (Terraform 1.12+). The two are mutually exclusive — branch on `req.ID == ""` to dispatch. If you only handle one, you break either the CLI flow or the new HCL flow. Identity attributes are NOT marked `Sensitive` (the value is part of how the resource is *addressed*, not a secret) — secret addressing data should be omitted from the identity schema entirely.
-
 ```go
 import (
     "github.com/hashicorp/terraform-plugin-framework/path"

@@ -1,7 +1,5 @@
 # Sensitive and write-only attributes
 
-> **Which one do I want?** Ask: *does Terraform need to read this value back later?* (drift detection, cross-resource references, import-verify, etc.) If **yes** → `Sensitive: true` only; the value lives in state, redacted from output. If **no** (one-time creds, initial passwords, rotation seeds) → `Sensitive: true` AND `WriteOnly: true`; the value never persists. The default for migrations is **Sensitive only** — flipping to `WriteOnly` is a practitioner-visible breaking change (see "Sensitive → WriteOnly is a practitioner-test breaking change too" below). Don't preemptively upgrade.
-
 ## Quick summary
 - `Sensitive: true` is unchanged in spelling and behaviour: the value is hidden in plans/logs but still stored in state.
 - The framework adds **write-only** attributes (`WriteOnly: true`) — supplied by the practitioner but never persisted to state. Useful for credentials Terraform doesn't need to round-trip.

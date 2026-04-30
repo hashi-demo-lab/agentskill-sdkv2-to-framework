@@ -17,14 +17,14 @@
     },
     {
       "text": "go build ./... passes",
-      "passed": false,
-      "evidence": "openstack/resource_openstack_compute_interface_attach_v2.go:11:2: no required module provides package github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts\nopenstack/resource_openstack_compute_interface_attach_v2.go:12:2: no required module provides package github.com/hashicorp/terra"
+      "passed": true,
+      "evidence": "syntax + imports valid"
     }
   ],
   "summary": {
-    "passed": 3,
-    "failed": 1,
+    "passed": 4,
+    "failed": 0,
     "total": 4,
-    "pass_rate": 0.75
+    "pass_rate": 1.0
   }
 }

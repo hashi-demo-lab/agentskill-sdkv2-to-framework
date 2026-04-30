@@ -89,15 +89,6 @@ grep -rl 'terraform-plugin-sdk/v2' . | grep -v '\.git/'
 ```
 Common stragglers: shared helper packages, custom validators, `helper/customdiff` users.
 
-**Update `go.mod`.** Even partial migrations need the framework on the module graph or `go build` fails immediately. Run:
-```sh
-go get github.com/hashicorp/terraform-plugin-framework
-go get github.com/hashicorp/terraform-plugin-framework-validators   # only if you used path.Expressions / cross-attr validators
-go get github.com/hashicorp/terraform-plugin-framework-timeouts     # only if you migrated Timeouts: fields
-go mod tidy
-```
-At the end of step 10, when no SDKv2 imports remain, also run `go mod tidy` once more to drop the SDKv2 require lines. Note: pulling the framework can cascade-upgrade `terraform-plugin-go`; if you keep SDKv2 around for partial migrations, pin `terraform-plugin-go` to the version SDKv2 expects (the resolver may otherwise pick a newer version that breaks SDKv2's `tfprotov5.ProviderServer` interface compliance).
-
 ### 11. Verify that all of your tests continue to pass.
 Full suite: `go test ./...`, then if creds are available `TF_ACC=1 go test ./...`. Also confirm `go.mod` no longer requires `terraform-plugin-sdk/v2` (run `go mod tidy`).
 

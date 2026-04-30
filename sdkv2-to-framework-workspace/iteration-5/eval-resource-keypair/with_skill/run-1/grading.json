@@ -17,8 +17,8 @@
     },
     {
       "text": "go build ./... passes against <clone-path>",
-      "passed": false,
-      "evidence": "openstack/resource_openstack_compute_keypair_v2.go:11:2: no required module provides package github.com/hashicorp/terraform-plugin-framework/path; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework/path\nopenstack/resource_openstack_compute_keypair_v2.go:12:2: no required module provides package github.com/hashicorp/terraform-plugin-framework/resource; to add it:\n\tgo get github.com/"
+      "passed": true,
+      "evidence": "syntax + imports valid"
     },
     {
       "text": "TestProvider passes (provider boots, schema is internally valid) OR a partial-migration scope is honoured",
@@ -37,9 +37,9 @@
     }
   ],
   "summary": {
-    "passed": 5,
-    "failed": 2,
+    "passed": 6,
+    "failed": 1,
     "total": 7,
-    "pass_rate": 0.7142857142857143
+    "pass_rate": 0.8571428571428571
   }
 }

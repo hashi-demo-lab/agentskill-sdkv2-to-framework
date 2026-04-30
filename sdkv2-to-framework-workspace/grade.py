@@ -42,6 +42,13 @@ EVALS_JSON = REPO_ROOT / "sdkv2-to-framework/evals/evals.json"
 CLONE_PATH = Path("/Users/simon.lynch/git/terraform-provider-openstack")
 WORKSPACE_BASE = REPO_ROOT / "sdkv2-to-framework-workspace"
 
+# The clone is reset to this branch (not HEAD) before each grade. The branch
+# adds terraform-plugin-framework + framework-validators + framework-timeouts
+# to go.mod (with terraform-plugin-go pinned for SDKv2 v2.38.1 compatibility),
+# so a correct migration can actually pass `go build` instead of immediately
+# failing on missing module deps. See iteration-5 plan, decision E (go.mod).
+CLONE_BASELINE_BRANCH = "sdkv2-to-framework/eval-baseline"
+
 # 12 verbatim HashiCorp step titles for the inventory eval.
 HASHICORP_12_STEPS = [
     "sufficient test coverage",
@@ -79,9 +86,24 @@ def grep_count(haystack: str, pattern: str, flags: int = 0) -> int:
 # -----------------------------------------------------------------------------
 
 def reset_clone() -> None:
-    """Restore + clean the openstack clone so each grade starts from a known state."""
+    """Restore + clean the openstack clone so each grade starts from a known state.
+
+    Resets `openstack/` and `go.mod` / `go.sum` to the eval-baseline branch tip
+    (not HEAD) so framework deps are present but no agent migrations leak between
+    runs. If the eval-baseline branch isn't checked out, the grader is running
+    in a context that hasn't been set up for the post-iteration-5 flow — fail
+    loudly rather than silently degrade.
+    """
+    branch = subprocess.run(
+        ["git", "-C", str(CLONE_PATH), "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True, timeout=10).stdout.strip()
+    if branch != CLONE_BASELINE_BRANCH:
+        raise RuntimeError(
+            f"openstack clone is on branch {branch!r}, expected {CLONE_BASELINE_BRANCH!r}. "
+            f"Run: git -C {CLONE_PATH} checkout {CLONE_BASELINE_BRANCH}"
+        )
     subprocess.run(["git", "-C", str(CLONE_PATH), "restore", "--source=HEAD",
-                    "--staged", "--worktree", "--", "openstack/"],
+                    "--staged", "--worktree", "--", "openstack/", "go.mod", "go.sum"],
                    capture_output=True, text=True, timeout=30)
     subprocess.run(["git", "-C", str(CLONE_PATH), "clean", "-fd", "--",
                     "openstack/"],
@@ -91,7 +113,11 @@ def reset_clone() -> None:
 def apply_outputs_to_clone(out_dir: Path) -> list[str]:
     """Copy *.go files from <out_dir>/migrated/ into <clone>/openstack/.
     Also copy migrated_schema.go (single-file schema-only evals) into the
-    target's path if it exists. Returns the list of relative paths written.
+    target's path if it exists. If the agent produced a go.mod / go.sum,
+    overlay those at the clone root too (rare; most evals don't touch
+    go.mod because the eval-baseline branch already has framework deps).
+
+    Returns the list of relative paths written.
     """
     written: list[str] = []
     migrated_dir = out_dir / "migrated"
@@ -100,6 +126,13 @@ def apply_outputs_to_clone(out_dir: Path) -> list[str]:
             dst = CLONE_PATH / "openstack" / src.name
             shutil.copyfile(src, dst)
             written.append(f"openstack/{src.name}")
+        # Optional go.mod / go.sum at the migrated root (would be unusual; the
+        # eval-baseline branch already supplies framework deps).
+        for f in ("go.mod", "go.sum"):
+            src = migrated_dir / f
+            if src.exists():
+                shutil.copyfile(src, CLONE_PATH / f)
+                written.append(f)
     schema_only = out_dir / "migrated_schema.go"
     if schema_only.exists():
         # The schema-only evals don't tell us which file to overwrite, so
@@ -125,10 +158,27 @@ def run_go(cmd: list[str], timeout: int = 180) -> tuple[bool, str]:
 
 
 def check_compile_and_provider(out_dir: Path, run_test_provider: bool, no_go_checks: bool) -> dict:
-    """Run go build, go vet, and (optionally) TestProvider against the clone
-    after applying out_dir's migrated files. Returns dict with keys:
-      build_ok, vet_ok, testprovider_ok, evidence (per stage), unrelated_modified.
-    Always resets the clone before and after.
+    """Validate the agent's migrated outputs.
+
+    Single-file migration evals are inherently *partial* — overwriting one Go
+    file in a 200-file package will break `go build ./...` because the rest of
+    the package still references the original symbol names. So we check what
+    we actually can:
+
+    - **Syntactic validity** of every migrated Go file (`gofmt -e`).
+    - **Import-list legitimacy** — every import path is one of the well-known
+      framework / framework-validators / framework-timeouts / SDKv2 packages,
+      or an openstack-internal / gophercloud / standard-library path. Catches
+      typos and hallucinated package paths.
+    - **Whole-package `go build`** is reported as a soft signal but does NOT
+      cause an expectation to fail (it nearly always fails on partial migration
+      due to other files in the package still referencing the original
+      function symbols).
+    - **No unrelated *.go files** were modified.
+
+    Returns dict with keys: build_ok (renamed semantics: now "syntax+imports
+    valid"), vet_ok (informational), testprovider_ok (None for partial migration),
+    evidence per stage, unrelated_modified.
     """
     reset_clone()
     written = apply_outputs_to_clone(out_dir)
@@ -145,23 +195,81 @@ def check_compile_and_provider(out_dir: Path, run_test_provider: bool, no_go_che
         reset_clone()
         return result
 
-    build_ok, build_err = run_go(["go", "build", "./..."], timeout=180)
-    result["build_ok"] = build_ok
-    result["build_evidence"] = build_err[:400] if not build_ok else "go build ./... succeeded"
+    # Syntactic validity of every migrated Go file (gofmt -e prints errors and
+    # exits non-zero on parse failure; we don't care about diff output).
+    syntax_errors: list[str] = []
+    for rel in written:
+        if not rel.endswith(".go"):
+            continue
+        path = CLONE_PATH / rel
+        if not path.exists():
+            continue
+        try:
+            r = subprocess.run(["gofmt", "-e", "-l", str(path)],
+                               capture_output=True, text=True, timeout=15)
+            # gofmt exits 0 for valid Go regardless of formatting. Errors go to stderr.
+            if r.returncode != 0 or r.stderr.strip():
+                syntax_errors.append(f"{rel}: {(r.stderr or r.stdout).strip()[:160]}")
+        except Exception as e:
+            syntax_errors.append(f"{rel}: {e}")
 
-    if build_ok:
-        vet_ok, vet_err = run_go(["go", "vet", "./..."], timeout=120)
+    # Import-list whitelist — catch hallucinated packages.
+    KNOWN_PREFIXES = (
+        "github.com/hashicorp/terraform-plugin-framework",
+        "github.com/hashicorp/terraform-plugin-framework-validators",
+        "github.com/hashicorp/terraform-plugin-framework-timeouts",
+        "github.com/hashicorp/terraform-plugin-sdk/v2",
+        "github.com/hashicorp/terraform-plugin-go",
+        "github.com/hashicorp/terraform-plugin-log",
+        "github.com/hashicorp/terraform-plugin-testing",
+        "github.com/gophercloud/gophercloud",
+        "github.com/terraform-provider-openstack/",
+    )
+    bad_imports: list[str] = []
+    for rel in written:
+        if not rel.endswith(".go"):
+            continue
+        path = CLONE_PATH / rel
+        if not path.exists():
+            continue
+        text = read(path)
+        # Naive import block scan; good enough for our purposes.
+        for m in re.finditer(r'^\s*"([^"]+)"', text, re.M):
+            imp = m.group(1)
+            if "/" not in imp:
+                continue  # stdlib
+            # Stdlib packages with slashes (e.g., net/http, encoding/json) — skip if no dot in first segment.
+            first = imp.split("/", 1)[0]
+            if "." not in first:
+                continue
+            if not imp.startswith(KNOWN_PREFIXES):
+                bad_imports.append(f"{rel}: {imp}")
+
+    syntax_ok = not syntax_errors
+    imports_ok = not bad_imports
+    result["build_ok"] = syntax_ok and imports_ok
+    if not syntax_ok:
+        result["build_evidence"] = f"syntax errors: {syntax_errors[:3]}"
+    elif not imports_ok:
+        result["build_evidence"] = f"unknown import paths: {bad_imports[:5]}"
     else:
-        vet_ok, vet_err = False, "skipped (build failed)"
-    result["vet_ok"] = vet_ok
-    result["vet_evidence"] = vet_err[:400] if not vet_ok else "go vet ./... succeeded"
+        result["build_evidence"] = "syntax + imports valid"
 
-    if run_test_provider and build_ok:
+    # Soft go build (informational) — mostly fails on partial migrations.
+    soft_build_ok, soft_build_err = run_go(["go", "build", "./..."], timeout=180)
+    result["vet_ok"] = soft_build_ok  # repurpose as soft-build informational flag
+    result["vet_evidence"] = (
+        "whole-package go build passes" if soft_build_ok
+        else f"whole-package go build fails (expected for partial migration): {soft_build_err[:200]}"
+    )
+
+    # TestProvider only meaningful if the whole package builds.
+    if run_test_provider and soft_build_ok:
         tp_ok, tp_err = run_go(
             ["go", "test", "-run", "^TestProvider$", "-count=1", "./openstack/..."],
             timeout=180)
     else:
-        tp_ok, tp_err = (None, "skipped — partial migration or build failed")
+        tp_ok, tp_err = (None, "skipped — partial migration or whole-package build failed")
     result["testprovider_ok"] = tp_ok
     result["testprovider_evidence"] = tp_err[:400] if tp_ok is False else (
         "TestProvider passes" if tp_ok else "TestProvider not run (partial migration)")
@@ -673,6 +781,187 @@ def grade_cross_attr(out_dir: Path, file_basename: str, no_go_checks: bool) -> l
     return expectations
 
 
+def grade_identity(out_dir: Path, file_basename: str, no_go_checks: bool) -> list[dict]:
+    """Eval 11 — composite-ID resource → ResourceWithIdentity with dual-path import."""
+    src = read(out_dir / "migrated" / f"{file_basename}.go")
+    expectations = []
+
+    expectations.append(expectation(
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        passed="terraform-plugin-sdk/v2" not in src,
+        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+    ))
+
+    has_identity_method = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+IdentitySchema\s*\(", src))
+    expectations.append(expectation(
+        "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+        passed=has_identity_method,
+        evidence="IdentitySchema method found" if has_identity_method else "missing",
+    ))
+
+    # Identity schema with at least 2 RequiredForImport attributes.
+    required_for_import = len(re.findall(r"RequiredForImport\s*:\s*true", src))
+    uses_identityschema = "identityschema." in src
+    expectations.append(expectation(
+        "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+        passed=uses_identityschema and required_for_import >= 2,
+        evidence=f"identityschema package: {uses_identityschema}; RequiredForImport count: {required_for_import}",
+    ))
+
+    # Dual-path ImportState: branches on req.ID emptiness AND uses req.Identity passthrough or attribute reads.
+    has_import_state = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+ImportState\s*\(", src))
+    legacy_path = bool(re.search(r"req\.ID\b|strings\.SplitN\s*\(\s*req\.ID", src))
+    modern_path = bool(re.search(r"ImportStatePassthroughWithIdentity|req\.Identity\b", src))
+    expectations.append(expectation(
+        "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+        passed=has_import_state and legacy_path and modern_path,
+        evidence=f"ImportState method: {has_import_state}; legacy path (req.ID/SplitN): {legacy_path}; modern path (req.Identity / ImportStatePassthroughWithIdentity): {modern_path}",
+    ))
+
+    # resp.Identity.Set in Create / Update / Read (at least one — preferably all).
+    identity_writes = len(re.findall(r"resp\.Identity\.Set", src))
+    expectations.append(expectation(
+        "Identity is set in Create / Update / Read (resp.Identity.Set call present)",
+        passed=identity_writes >= 1,
+        evidence=f"resp.Identity.Set occurrences: {identity_writes}",
+    ))
+
+    go = check_compile_and_provider(out_dir, run_test_provider=False, no_go_checks=no_go_checks)
+    expectations.append(expectation(
+        "go build ./... passes against <clone-path>",
+        passed=bool(go["build_ok"]) if go["build_ok"] is not None else False,
+        evidence=go["build_evidence"],
+    ))
+    return expectations
+
+
+def grade_writeonly(out_dir: Path, file_basename: str, no_go_checks: bool) -> list[dict]:
+    """Eval 12 — Sensitive password field → WriteOnly migration."""
+    src = read(out_dir / "migrated" / f"{file_basename}.go")
+    test_src = read(out_dir / "migrated" / f"{file_basename}_test.go")
+    expectations = []
+
+    expectations.append(expectation(
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        passed="terraform-plugin-sdk/v2" not in src,
+        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+    ))
+
+    # Find the password attribute block and check Sensitive: true AND WriteOnly: true.
+    pw_match = re.search(r'"password":\s*schema\.\w+Attribute\s*\{([^}]*)\}', src, re.S)
+    if pw_match:
+        body = pw_match.group(1)
+        sensitive = bool(re.search(r"Sensitive:\s*true", body))
+        write_only = bool(re.search(r"WriteOnly:\s*true", body))
+        computed = bool(re.search(r"Computed:\s*true", body))
+        expectations.append(expectation(
+            "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+            passed=sensitive and write_only,
+            evidence=f"Sensitive: {sensitive}; WriteOnly: {write_only}",
+        ))
+        expectations.append(expectation(
+            "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+            passed=not computed,
+            evidence="Computed: false (correct)" if not computed else "Computed: true — invalid combination with WriteOnly",
+        ))
+    else:
+        expectations.append(expectation(
+            "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+            passed=False,
+            evidence="password attribute block not found in migrated source",
+        ))
+        expectations.append(expectation(
+            "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+            passed=False,
+            evidence="password attribute block not found",
+        ))
+
+    # In Create/Update, password should be read from req.Config (not Plan/State).
+    # Heuristic: look for `Config.Get` + a model struct that includes Password.
+    create_block = re.search(r"func\s*\(\w+\s+\*?\w+\)\s+Create\s*\([^)]*\)\s*\{(.*?)\n\}\n", src, re.S)
+    update_block = re.search(r"func\s*\(\w+\s+\*?\w+\)\s+Update\s*\([^)]*\)\s*\{(.*?)\n\}\n", src, re.S)
+    config_used = False
+    for blk_match in (create_block, update_block):
+        if blk_match:
+            body = blk_match.group(1)
+            if re.search(r"req\.Config\.Get\b", body):
+                config_used = True
+    expectations.append(expectation(
+        "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+        passed=config_used,
+        evidence="req.Config.Get found in Create or Update" if config_used else "no req.Config.Get found in CRUD methods (write-only values must come from Config)",
+    ))
+
+    # Test file lists password under ImportStateVerifyIgnore.
+    isvi = bool(re.search(r"ImportStateVerifyIgnore\s*:\s*\[\]string\s*\{[^}]*\"password\"", test_src, re.S))
+    expectations.append(expectation(
+        "Test file includes ImportStateVerifyIgnore listing the password field",
+        passed=isvi,
+        evidence="ImportStateVerifyIgnore includes password" if isvi else "missing — write-only attrs require ImportStateVerifyIgnore or import-verify will fail",
+    ))
+
+    go = check_compile_and_provider(out_dir, run_test_provider=False, no_go_checks=no_go_checks)
+    expectations.append(expectation(
+        "go build ./... passes against <clone-path>",
+        passed=bool(go["build_ok"]) if go["build_ok"] is not None else False,
+        evidence=go["build_evidence"],
+    ))
+    return expectations
+
+
+def grade_timeouts(out_dir: Path, file_basename: str, no_go_checks: bool) -> list[dict]:
+    """Eval 13 — Timeouts field migration to terraform-plugin-framework-timeouts."""
+    src = read(out_dir / "migrated" / f"{file_basename}.go")
+    expectations = []
+
+    expectations.append(expectation(
+        "Migrated file no longer imports terraform-plugin-sdk/v2",
+        passed="terraform-plugin-sdk/v2" not in src,
+        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+    ))
+
+    imports_timeouts_pkg = "terraform-plugin-framework-timeouts/resource/timeouts" in src
+    expectations.append(expectation(
+        "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+        passed=imports_timeouts_pkg,
+        evidence="timeouts package imported" if imports_timeouts_pkg else "missing import",
+    ))
+
+    # Block syntax preserved: timeouts.Block(...) inside a Blocks: map.
+    uses_block_form = bool(re.search(r"timeouts\.Block\s*\(", src))
+    uses_attribute_form = bool(re.search(r"timeouts\.Attributes\s*\(", src))
+    expectations.append(expectation(
+        "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) — NOT timeouts.Attributes",
+        passed=uses_block_form and not uses_attribute_form,
+        evidence=f"timeouts.Block: {uses_block_form}; timeouts.Attributes (wrong for migration): {uses_attribute_form}",
+    ))
+
+    # Typed model has a Timeouts field of type timeouts.Value with tfsdk:"timeouts".
+    has_timeouts_field = bool(re.search(
+        r"Timeouts\s+timeouts\.Value\s+`tfsdk:\"timeouts\"`", src))
+    expectations.append(expectation(
+        "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+        passed=has_timeouts_field,
+        evidence="Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found" if has_timeouts_field else "missing — model must carry the timeouts state across CRUD",
+    ))
+
+    # plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) calls with context-derived timeout.
+    timeout_calls = bool(re.search(r"\.Timeouts\.(Create|Delete|Update|Read)\s*\(\s*ctx", src))
+    expectations.append(expectation(
+        "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+        passed=timeout_calls,
+        evidence="Timeouts.{Create|Delete}(ctx, ...) invocation found" if timeout_calls else "missing — timeouts.Value methods must be invoked to derive the per-CRUD deadline",
+    ))
+
+    go = check_compile_and_provider(out_dir, run_test_provider=False, no_go_checks=no_go_checks)
+    expectations.append(expectation(
+        "go build ./... passes against <clone-path>",
+        passed=bool(go["build_ok"]) if go["build_ok"] is not None else False,
+        evidence=go["build_evidence"],
+    ))
+    return expectations
+
+
 # -----------------------------------------------------------------------------
 # Driver
 # -----------------------------------------------------------------------------
@@ -688,6 +977,9 @@ EVAL_DISPATCH = {
     8: ("mux-refusal",          lambda d, ngc: grade_mux_refusal(d, no_go_checks=ngc)),
     9: ("chained-upgraders",    lambda d, ngc: grade_chained_upgraders(d, no_go_checks=ngc)),
     10:("cross-attr-validators",lambda d, ngc: grade_cross_attr(d, "resource_openstack_compute_interface_attach_v2", no_go_checks=ngc)),
+    11:("identity",             lambda d, ngc: grade_identity(d, "resource_openstack_lb_member_v2", no_go_checks=ngc)),
+    12:("write-only",           lambda d, ngc: grade_writeonly(d, "resource_openstack_db_user_v1", no_go_checks=ngc)),
+    13:("timeouts",             lambda d, ngc: grade_timeouts(d, "resource_openstack_db_database_v1", no_go_checks=ngc)),
 }
 
 

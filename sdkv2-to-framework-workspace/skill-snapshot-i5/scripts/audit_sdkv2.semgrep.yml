@@ -1,0 +1,155 @@
+# Semgrep rules for auditing a terraform-plugin-sdk/v2 provider.
+#
+# Each rule fires once per matching AST occurrence. The audit_sdkv2.sh script
+# aggregates the JSON output by rule id and per file.
+#
+# Rule design: prefer AST-aware matches over textual ones. For example,
+# `max-items-1-nested-block` matches struct literals that contain BOTH
+# `MaxItems: 1` AND a nested `Elem: &schema.Resource{...}` — something the
+# previous grep could only flag as "needs manual review".
+rules:
+  # -- Provider-level wiring -------------------------------------------------
+  - id: resources-map
+    pattern: "ResourcesMap: $X"
+    languages: [go]
+    severity: INFO
+    message: "ResourcesMap field — provider declares resources here."
+
+  - id: data-sources-map
+    pattern: "DataSourcesMap: $X"
+    languages: [go]
+    severity: INFO
+    message: "DataSourcesMap field — provider declares data sources here."
+
+  # -- Per-attribute features that move APIs --------------------------------
+  - id: force-new
+    pattern: "ForceNew: true"
+    languages: [go]
+    severity: INFO
+    message: "ForceNew: true → migrate to RequiresReplace plan modifier."
+
+  - id: validate-func
+    pattern-either:
+      - pattern: "ValidateFunc: $X"
+      - pattern: "ValidateDiagFunc: $X"
+    languages: [go]
+    severity: INFO
+    message: "ValidateFunc/ValidateDiagFunc → Validators slice."
+
+  - id: diff-suppress-func
+    pattern: "DiffSuppressFunc: $X"
+    languages: [go]
+    severity: INFO
+    message: "DiffSuppressFunc → custom type or plan modifier (analyse intent)."
+
+  - id: customize-diff
+    pattern: "CustomizeDiff: $X"
+    languages: [go]
+    severity: INFO
+    message: "CustomizeDiff → ResourceWithModifyPlan.ModifyPlan."
+
+  - id: state-func
+    pattern: "StateFunc: $X"
+    languages: [go]
+    severity: INFO
+    message: "StateFunc → custom type with normalisation."
+
+  - id: sensitive
+    pattern: "Sensitive: true"
+    languages: [go]
+    severity: INFO
+    message: "Sensitive: true (consider WriteOnly: true if value need not round-trip)."
+
+  - id: deprecated-attr
+    pattern: "Deprecated: $MSG"
+    languages: [go]
+    severity: INFO
+    message: "Deprecated → DeprecationMessage in the framework."
+
+  - id: schema-default
+    pattern: "Default: $X"
+    languages: [go]
+    severity: INFO
+    message: "Default → defaults package (NOT PlanModifiers). Use stringdefault.StaticString, int64default.StaticInt64, etc."
+
+  - id: cross-attr-constraint
+    pattern-either:
+      - pattern: "ConflictsWith: $X"
+      - pattern: "ExactlyOneOf: $X"
+      - pattern: "AtLeastOneOf: $X"
+      - pattern: "RequiredWith: $X"
+    languages: [go]
+    severity: INFO
+    message: "Cross-attribute constraint → per-attribute Validators with path.Expressions, OR ResourceWithConfigValidators."
+
+  - id: set-hash-func
+    pattern: "Set: $X"
+    languages: [go]
+    severity: INFO
+    message: "Set hash function → drop entirely. SetAttribute / SetNestedAttribute compute uniqueness internally."
+
+  - id: migrate-state-legacy
+    pattern: "MigrateState: $X"
+    languages: [go]
+    severity: INFO
+    message: "MigrateState (legacy SDKv2 v1.x) → upgrade to StateUpgraders in SDKv2 first, then to ResourceWithUpgradeState."
+
+  # -- Resource-level features -----------------------------------------------
+  - id: importer
+    pattern: "Importer: $X"
+    languages: [go]
+    severity: INFO
+    message: "Importer → ResourceWithImportState.ImportState method."
+
+  - id: timeouts
+    pattern: "Timeouts: $X"
+    languages: [go]
+    severity: INFO
+    message: "Timeouts → terraform-plugin-framework-timeouts package."
+
+  - id: state-upgraders
+    pattern: "StateUpgraders: $X"
+    languages: [go]
+    severity: INFO
+    message: "StateUpgraders → ResourceWithUpgradeState (single-step semantics)."
+
+  - id: schema-version
+    pattern: "SchemaVersion: $N"
+    languages: [go]
+    severity: INFO
+    message: "SchemaVersion → schema.Schema.Version field."
+
+  # -- Block / nested-attribute decision points (multi-line, package-agnostic)
+  # Providers commonly wrap terraform-plugin-sdk/v2 behind their own alias
+  # (e.g. `pluginsdk.Resource`, `tfsdk.Resource`). The patterns use a
+  # metavariable for the package alias so they match any such wrapper.
+  - id: max-items-1-nested-block
+    pattern: |
+      {
+        ...,
+        MaxItems: 1,
+        ...,
+        Elem: &$PKG.Resource{...},
+        ...,
+      }
+    languages: [go]
+    severity: INFO
+    message: "MaxItems:1 paired with nested Elem (block) — block-vs-nested-attribute decision required (see references/blocks.md)."
+
+  - id: nested-elem-resource
+    pattern: |
+      Elem: &$PKG.Resource{
+        ...
+      }
+    languages: [go]
+    severity: INFO
+    message: "Nested Elem (block) — see references/blocks.md."
+
+  - id: min-items-positive
+    # MinItems: 0 is the default — only fire on positive values that signal
+    # a true repeating block.
+    pattern: "MinItems: $N"
+    pattern-not: "MinItems: 0"
+    languages: [go]
+    severity: INFO
+    message: "MinItems > 0 — true repeating block (keep as block, not nested attribute)."
