@@ -5,9 +5,9 @@
 ## Quick summary
 - `Sensitive: true` is unchanged in spelling and behaviour: the value is hidden in plans/logs but still stored in state.
 - The framework adds **write-only** attributes (`WriteOnly: true`) — supplied by the practitioner but never persisted to state. Useful for credentials Terraform doesn't need to round-trip.
-- Write-only requires `terraform-plugin-framework` **v1.14.0+** (technical preview) and Terraform **1.11+**, with v1.17.0+ recommended for production use. The v1.14 preview ships the field; v1.17 stabilises behaviour.
-- **`WriteOnly` and `Computed` should not be combined on the same attribute.** A write-only value isn't persisted; making it computed would need the framework to materialise a value in state, which contradicts write-only's whole point. Terraform CLI rejects configurations that use both at apply time. If you need a "default-or-rotate" pattern, use a separate computed attribute that mirrors the rotation source rather than trying to mix the two on one attribute.
-- **Nested `WriteOnly` cascades.** If a parent (`SingleNestedAttribute`, `ListNestedAttribute`, etc.) is `WriteOnly`, every child attribute should also be `WriteOnly`, and none should be `Computed`. The framework's `ValidateImplementation` does not currently catch every violation at provider-boot time — so test this end-to-end. Run an acceptance step that exercises the attribute and confirm there's no apply-time error.
+- Write-only requires `terraform-plugin-framework` **v1.14.0+** (technical preview through v1.19) and Terraform **1.11+**. Pin the framework as recent as your other constraints allow.
+- **`WriteOnly` and `Computed` cannot coexist on the same attribute.** A write-only value isn't persisted; making it computed would need the framework to materialise a value in state, which contradicts write-only's whole point. The framework rejects this at provider boot via `ValidateImplementation`. If you need a "default-or-rotate" pattern, use a separate computed attribute that mirrors the rotation source rather than trying to mix the two on one attribute.
+- **Nested `WriteOnly` cascades.** If a parent (`SingleNestedAttribute`, `ListNestedAttribute`, `MapNestedAttribute`) is `WriteOnly`, every child must also be `WriteOnly`, and none may be `Computed`. `SetNestedAttribute` does not support `WriteOnly` at all (the framework rejects sets containing write-only children). All violations are caught at provider boot via `ValidateImplementation`.
 - Sensitive attributes still appear in `terraform show -json`, just redacted in human-readable output. Don't rely on `Sensitive` alone for security.
 - When migrating, sweep for SDKv2 patterns where `Sensitive: true` was being used as a poor man's write-only (e.g., setting state to a hash placeholder); these may be candidates for the new write-only.
 
@@ -91,16 +91,16 @@ The practitioner provides the value in config; Terraform never persists it; subs
 
 If you need to read the value back later (to detect drift, to refer to it in another resource via `data.myprov_x.attr`), do **not** use `WriteOnly`. The whole point is that it's not in state.
 
-## Hard rules (most are caught at provider boot; nested cases need acceptance tests)
+## Hard rules (all enforced at provider boot)
 
-For top-level scalar attributes, the framework's `ValidateImplementation` enforces the constraints below at provider startup — your `TestProvider` test or any acceptance step will surface violations. For nested cases (a `WriteOnly` parent with non-`WriteOnly` or `Computed` children), Terraform CLI is the backstop at apply time, so test those with a real config-apply step.
+The framework's `ValidateImplementation` runs during `GetProviderSchema` and rejects violations of all four rules below before practitioners can configure the provider. Your `TestProvider` test (which boots the provider) will surface them.
 
-1. **`WriteOnly` and `Computed` cannot coexist on the same attribute.** A write-only value isn't persisted; making it computed would need the framework to materialise a value in state, which contradicts write-only's whole point. The framework rejects this at boot for top-level scalars.
-2. **A top-level `WriteOnly` attribute must be `Required` or `Optional`** — not pure `Computed`. The framework rejects this at boot.
-3. **`WriteOnly` parent cascades to children.** Every nested attribute under a `WriteOnly` `SingleNestedAttribute` / `ListNestedAttribute` / `SetNestedAttribute` / `MapNestedAttribute` should itself be `WriteOnly`, and none should be `Computed`. The framework's boot-time validators cover top-level cases; nested-cascade enforcement falls back to Terraform CLI at apply time — write an acceptance step that exercises the nested attribute to catch this early.
+1. **`WriteOnly` and `Computed` cannot coexist on the same attribute.** Rejected at boot.
+2. **A top-level `WriteOnly` attribute must be `Required` or `Optional`** — not pure `Computed`. Rejected at boot.
+3. **Nested `WriteOnly` cascade.** Under a `WriteOnly` `SingleNestedAttribute`, `ListNestedAttribute`, or `MapNestedAttribute`, every child must also be `WriteOnly` and none may be `Computed`. The framework's boot-time validators emit `InvalidWriteOnlyNestedAttributeDiag` / `InvalidComputedNestedAttributeWithWriteOnlyDiag`. **`SetNestedAttribute` has no `WriteOnly` field at all** — the framework rejects sets containing any `WriteOnly` child. If your secret lives inside a set-shaped attribute, restructure to a list or single nested.
 4. **Pair `WriteOnly` with `ImportStateVerifyIgnore` in tests.** See "Test treatment" below.
 
-The minimum end-to-end coverage: a `TestProvider` test (catches the top-level boot-time rejections) plus one acceptance step per write-only attribute that exercises the field with a config apply (catches the nested-cascade cases).
+A `TestProvider` test catches all four — no separate acceptance step is needed for nested-cascade verification.
 
 ## Test treatment
 

@@ -21,6 +21,11 @@
       "evidence": "matched: basetypes."
     },
     {
+      "text": "No destructive custom type (a ValueFromString that hashes/normalises the input \u2014 sends the hash to the API instead of the user's value). Per the skill: use WriteOnly OR plain types.String + hash in CRUD instead.",
+      "passed": false,
+      "evidence": "destructive custom type detected: ValueFromString hashes its input. All of req.Config / req.Plan / req.State decode through the same custom type, so the API call in Create/Update will receive the hash, not the user's raw value. See state-and-types.md 'Destructive StateFunc' section."
+    },
+    {
       "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)",
       "passed": true,
       "evidence": "absent"
@@ -38,8 +43,8 @@
   ],
   "summary": {
     "passed": 7,
-    "failed": 0,
-    "total": 7,
-    "pass_rate": 1.0
+    "failed": 1,
+    "total": 8,
+    "pass_rate": 0.875
   }
 }

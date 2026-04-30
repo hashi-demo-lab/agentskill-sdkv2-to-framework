@@ -123,26 +123,14 @@ The `types` package is convenience aliases over `basetypes`. For custom types (n
 
 This is the right migration path for many SDKv2 `DiffSuppressFunc`/`StateFunc` uses — the framework compares values via the type's `Equal` method, so a normalising custom type makes equivalent representations compare equal automatically.
 
-A minimal example:
-```go
-type lowerStringType struct{ basetypes.StringType }
+**Don't roll your own.** The custom-type interfaces (`basetypes.StringTypable`, `basetypes.StringValuable`) require a fairly complete set of overrides — `Equal`, `String`, `ValueType`, `Type`, AND `ValueFromTerraform` (so decoding from the wire actually returns your custom value, not a plain `basetypes.StringValue`). The skeleton example is misleading because the missing methods are the ones that make the normalisation actually run; with just a `ValueFromString` override the framework decodes via `ValueFromTerraform` (which falls through to `basetypes.StringValue`) and your normalisation is silently bypassed.
 
-func (t lowerStringType) ValueFromString(ctx context.Context, in basetypes.StringValue) (basetypes.StringValuable, diag.Diagnostics) {
-    return lowerStringValue{StringValue: basetypes.NewStringValue(strings.ToLower(in.ValueString()))}, nil
-}
+If a normalising type is genuinely the right answer:
+1. **Prefer an off-the-shelf companion-package type** (see below — covers JSON, CIDR, IP, MAC).
+2. **Read `terraform-plugin-framework-jsontypes`'s `jsontypes.NormalizedType` source** as the canonical full-implementation reference — it's the smallest complete normalising custom type in the HashiCorp tree.
+3. **For one-off normalisation**, a plan modifier (`stringplanmodifier.UseStateForUnknown`-shaped) or `ModifyPlan` is usually less work than a custom type and is easier to debug.
 
-type lowerStringValue struct{ basetypes.StringValue }
-```
-
-Wire onto the schema attribute via the `CustomType` field:
-```go
-"name": schema.StringAttribute{
-    Required:   true,
-    CustomType: lowerStringType{},
-}
-```
-
-Use sparingly — the type machinery is cognitive overhead. For one-off normalisation, a plan modifier or `ModifyPlan` may be simpler.
+For destructive normalisation (hashing, lossy case-folding) see "Destructive `StateFunc`" below — custom types are the wrong tool.
 
 ### Off-the-shelf custom types
 

@@ -101,7 +101,7 @@ In SDKv2 the `Configure` function returned an `interface{}` "meta" that became `
 ```go
 // In the resource
 func (r *thingResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-    if req.ProviderData == nil { return } // called twice; once with nil
+    if req.ProviderData == nil { return } // called on every RPC; ProviderData is nil during early calls
     client, ok := req.ProviderData.(*Client)
     if !ok {
         resp.Diagnostics.AddError("unexpected provider data type", fmt.Sprintf("got %T", req.ProviderData))
@@ -111,7 +111,7 @@ func (r *thingResource) Configure(ctx context.Context, req resource.ConfigureReq
 }
 ```
 
-The `req.ProviderData == nil` check is important — Terraform calls `Configure` once before the provider's own `Configure`, then again afterward. The first call has `nil`.
+The `req.ProviderData == nil` check is important — the framework calls `Configure` on a resource/data source *on every RPC*, including `ValidateResourceConfig` which runs *before* the provider's own `Configure`. On those early calls `ProviderData` is `nil`. Bailing on nil is the correct guard; without it, the type assertion below panics.
 
 ## Functional vs non-functional fields
 

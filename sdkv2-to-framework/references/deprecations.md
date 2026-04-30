@@ -107,4 +107,4 @@ If `git grep` finds any of these in your migrated codebase, something went wrong
 - `Importer: &schema.ResourceImporter` (replaced by `ImportState` method)
 - `Timeouts: &schema.ResourceTimeout` (replaced by the framework-timeouts package)
 - `schema.Resource{}.Exists` (the existence check — gone)
-- `schema.DefaultTimeout(` (replaced by per-method default in `plan.Timeouts.Create(ctx, default)`)
+- `schema.DefaultTimeout(` (replaced by `plan.Timeouts.Create(ctx, defaultDuration)` from `terraform-plugin-framework-timeouts`, which returns `(time.Duration, diag.Diagnostics)`; see `timeouts.md`)

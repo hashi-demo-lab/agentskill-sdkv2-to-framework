@@ -155,6 +155,6 @@ func (v lowercaseValidator) ValidateString(ctx context.Context, req validator.St
 
 Implement the corresponding `Validate*` for the kind: `ValidateString`, `ValidateInt64`, `ValidateBool`, `ValidateList`, etc.
 
-## Validators run early — before plan / Configure
+## Validators run early — `ProviderData` is nil
 
-Validators run during config validation, before plan, and **before `Configure`** is called on the resource. Don't try to use the API client inside a validator — it's not available yet, and the validator should be pure config inspection anyway. Put API-touching checks in `Read`/`Create`/`Update` and surface them via diagnostics.
+Validators run during config validation, before plan. The framework *does* call `Configure` on the resource before validation, but it passes `req.ProviderData == nil` because the provider's own `Configure` (which produces the client) hasn't run yet. So `r.client` is unset when a validator runs. Don't reach for the API client inside a validator — it's nil, and the validator should be pure config inspection anyway. Put API-touching checks in `Read`/`Create`/`Update` and surface them via diagnostics.

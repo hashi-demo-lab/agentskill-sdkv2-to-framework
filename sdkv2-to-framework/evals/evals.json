@@ -643,6 +643,11 @@
           "pattern": "(basetypes\\.|StringTypable|StringValuable|PlanModifyString|stringplanmodifier\\.)"
         },
         {
+          "type": "no_destructive_custom_type",
+          "text": "No destructive custom type (a ValueFromString that hashes/normalises the input — sends the hash to the API instead of the user's value). Per the skill: use WriteOnly OR plain types.String + hash in CRUD instead.",
+          "file": "migrated/resource_certificate.go"
+        },
+        {
           "type": "regex",
           "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)",
           "file": "migrated/resource_certificate.go",

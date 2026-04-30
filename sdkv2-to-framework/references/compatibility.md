@@ -15,7 +15,7 @@
 | `DynamicAttribute` / `types.Dynamic` | v1.7.0 (March 2024) | any | rare; only for deliberate untyped passthrough |
 | `ResourceWithMoveState` (cross-type / cross-provider state moves) | v1.6.0 (Feb 2024) | 1.8+ (for `moved {}` blocks across types) | see `move-state.md` |
 | `ResourceWithIdentity` + `identityschema` package | v1.15.0 (May 2025) | 1.12+ (for `identity = {...}` inside `import {}`) | the `import {}` block itself shipped in 1.5 |
-| `ResourceWithUpgradeIdentity` | v1.15.0+ (interface present in source; specific introduction not changelogged — verify before pinning) | 1.12+ | rare; only when changing identity schema |
+| `ResourceWithUpgradeIdentity` | v1.15.0 (shipped alongside identity) | 1.12+ | rare; only when changing identity schema |
 | `ImportStatePassthroughWithIdentity` | v1.15.0 | 1.12+ | one (state, identity) pair per call |
 | `WriteOnly` attributes | v1.14.0+ (still **technical preview** through at least v1.19) | 1.11+ | feature is preview-only — no GA flip in the framework's CHANGELOG yet. Adopt only if you accept preview status. |
 | `UseNonNullStateForUnknown` (nested-attribute null fix) | v1.17.0 | any | use on Computed children inside nested attributes; see `plan-modifiers.md` |
@@ -53,7 +53,7 @@ Each is independently versioned; check their own go.mod entries:
 When you cut a major version of your provider after migration, document:
 
 - **Minimum Terraform CLI version**: at least 1.5 (for `import {}` blocks if you adopted identity), at least 1.12 (for `identity = {...}` payload), at least 1.11 (for write-only). Pick the highest your features require.
-- **Minimum Go version for building the provider**: framework v1.10+ requires Go 1.21; v1.15+ requires Go 1.22; v1.17+ requires Go 1.23. Check the framework's `go.mod`.
+- **Minimum Go version for building the provider**: framework's `go.mod` floor moves with each release. As of v1.19 the floor is Go 1.25; v1.16+ requires 1.24; v1.15+ requires 1.23; v1.12+ requires 1.22. Check `go.mod` in your pinned framework version directly — don't trust this row to track the moving target.
 
 ## Where this matters in the workflow
 

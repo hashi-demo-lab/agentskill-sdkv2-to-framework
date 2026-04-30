@@ -131,6 +131,24 @@ Blocks: map[string]schema.Block{
 
 `SetNestedBlock` for `TypeSet`. `MapNestedBlock` does not exist — `TypeMap` of struct is rare and uses `MapNestedAttribute`.
 
+## `SingleNestedBlock` — the third option for `MaxItems: 1`
+
+Alongside `ListNestedBlock + listvalidator.SizeAtMost(1)`, the framework ships a `SingleNestedBlock` that's exactly "a block that holds at most one nested object". For new conservative migrations it's often more ergonomic than a list-with-validator and avoids the practitioner ever seeing the list shape in state diagnostics:
+
+```go
+Blocks: map[string]schema.Block{
+    "persistence": schema.SingleNestedBlock{
+        Attributes: map[string]schema.Attribute{ /* ... */ },
+    },
+},
+```
+
+HCL syntax is identical to `ListNestedBlock` — `persistence { ... }` — so it preserves practitioner configs the same way. Pick `SingleNestedBlock` over `ListNestedBlock + SizeAtMost(1)` when:
+- The block can be entirely omitted (it's optional) AND can appear at most once.
+- You don't need `MinItems: 1` semantics ("must be present") — `SingleNestedBlock` is always optional in the practitioner-facing sense.
+
+Pick `ListNestedBlock + SizeAtMost(1)` when you genuinely need the list-shaped state path (e.g., for backward state compatibility where existing state was written under `block.0.field`).
+
 ## Block field placement
 
 Attributes and blocks live in *separate fields* on the schema:

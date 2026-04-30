@@ -27,7 +27,7 @@ func (r *thingResource) ImportState(ctx context.Context, req resource.ImportStat
 }
 ```
 
-`ImportStatePassthroughID` reads `req.ID` (whatever `terraform import myprov_thing FOO` was given) and writes it to the path you specify. After that, `Read` runs to populate the rest of the state from the API.
+`ImportStatePassthroughID` reads `req.ID` (whatever `terraform import myprov_thing FOO` was given) and writes it to the path you specify. If the practitioner used the modern `import { identity = {...} }` block instead of a string ID, `req.ID` is empty and the helper writes nothing to state — the attribute ends up null. The framework passes `req.Identity` through to `resp.Identity` automatically; `Read` can then look up the resource via identity. So `ImportStatePassthroughID` works for both legacy and identity-block imports out of the box, with no extra wiring on simple single-attribute imports. After import, `Read` runs to populate the rest of the state.
 
 ## Composite IDs
 
@@ -75,7 +75,7 @@ This is why parsing a composite ID into `region` + `id` is fine in `ImportState`
 
 ## What ImportState should NOT do
 
-- Don't call the API client. It's not yet configured for this request in some cases, and the design separates parsing from fetching.
+- Don't call the API client from `ImportState`. The design separates parsing (translate the import argument into state) from fetching (`Read` does the API call afterward). Putting an API call in `ImportState` would make import fragile if the API is briefly unavailable.
 - Don't try to populate computed-only fields. Set just enough that `Read` can find the resource. `Read` populates the rest.
 - Don't add validation for "is the ID well-formed beyond what's required to dispatch?" — that, again, belongs in `Read` if needed.
 

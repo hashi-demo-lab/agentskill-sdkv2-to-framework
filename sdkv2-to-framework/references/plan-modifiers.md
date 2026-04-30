@@ -59,7 +59,7 @@ For computed/derived defaults, write a custom default by implementing the `defau
 
 **A common mistake**: putting `Default` *inside* the `PlanModifiers` slice. That's a type error — `Default` is its own field on the attribute struct, separate from `PlanModifiers`.
 
-**Another rule**: an attribute with a `Default` must be `Computed: true`. Practitioners can still set it (because it's also `Optional: true`), but the framework needs `Computed` to insert the default value into the plan.
+**Another rule**: an attribute with a `Default` must be `Computed: true`. The framework rejects this at provider boot (during `GetProviderSchema`) via `ValidateImplementation` — your `TestProvider` test will catch it. Practitioners can still set the value (because it's also `Optional: true`), but `Computed` is what lets the framework insert the default into the plan.
 
 ## UseStateForUnknown
 

@@ -110,7 +110,7 @@ return []resource.StateMover{
 }
 ```
 
-Movers are tried in slice order; the first one that doesn't `return` empty-handed wins. Don't return errors when the source doesn't match — just `return` so the framework tries the next mover.
+Movers are tried in slice order; the first one that produces *any* response wins — that includes a mover that returns only error diagnostics (no state set). So when the source doesn't match, just `return` without writing state and without adding diagnostics — the framework then tries the next mover. Returning an error means "this mover matched but the state is invalid", which short-circuits the chain.
 
 ## When to combine with `UpgradeState`
 

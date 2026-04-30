@@ -80,8 +80,8 @@ import (
 | `Deprecated: "..."` | `DeprecationMessage: "..."` |
 | `ValidateFunc: validation.StringLenBetween(1,255)` | `Validators: []validator.String{stringvalidator.LengthBetween(1,255)}` — see `validators.md` |
 | `DiffSuppressFunc` | usually a plan modifier or custom type — see `plan-modifiers.md`/`state-and-types.md` |
-| `StateFunc` | a custom type with normalisation in its `ValueFromString`/equivalent — see `state-and-types.md` |
-| `ConflictsWith: []string{"other"}` | `Validators: []validator.String{stringvalidator.ConflictsWith(path.Expressions{path.MatchRoot("other")})}` |
+| `StateFunc` | a custom type with normalisation, OR a plan modifier; **destructive** normalisation (hashing, case-folding) needs `WriteOnly` or explicit hashing in CRUD instead — see `state-and-types.md` |
+| `ConflictsWith: []string{"other"}` | `Validators: []validator.String{stringvalidator.ConflictsWith(path.MatchRoot("other"))}` (variadic — pass each `path.Expression` directly, no `path.Expressions{}` wrapper) |
 | `ExactlyOneOf` / `AtLeastOneOf` / `RequiredWith` | corresponding `*validator.*` from `terraform-plugin-framework-validators` |
 | `Set: schema.HashString` (and other `SchemaSetFunc`s) | **delete** — not needed, framework handles set uniqueness |
 
@@ -138,6 +138,6 @@ resp.Schema = schema.Schema{
 
 ## Where this differs by use site
 
-- **Resource schemas** support `Blocks`, `Version` (for state-upgraders), and resource-specific plan modifiers.
-- **Data source schemas** support `Blocks` but not `Version` or plan modifiers.
-- **Provider schemas** are simpler still — typically only attributes, no blocks, no plan modifiers.
+- **Resource schemas** support `Attributes`, `Blocks`, `Version` (for state-upgraders), and per-attribute plan modifiers.
+- **Data source schemas** support `Attributes` and `Blocks`. No `Version`. No plan modifiers (data sources are read-only — there's no plan to modify).
+- **Provider schemas** support `Attributes` and `Blocks`. No `Version`. Provider-level attributes don't carry per-attribute plan modifiers (those are resource-only); cross-attribute validation lives on `ProviderWithConfigValidators`.

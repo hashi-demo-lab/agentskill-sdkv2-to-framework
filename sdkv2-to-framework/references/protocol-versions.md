@@ -71,7 +71,7 @@ err := providerserver.Serve(context.Background(), provider.New(version), provide
 })
 ```
 
-The framework will downgrade some features (e.g., write-only attributes won't work). This is *not* recommended unless you have a hard backward-compat constraint.
+Some features (write-only attributes, certain nested-attribute shapes) require protocol v6 and the framework will surface schema-validation errors at provider start if you serve them under v5. Don't pick v5 unless you have a hard backward-compat constraint.
 
 ## When v6 is required
 

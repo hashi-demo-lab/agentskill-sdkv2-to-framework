@@ -694,6 +694,79 @@ def check_no_migrated_dir(ctx: Ctx, args: dict) -> tuple[bool, str]:
     return not files, "no migrated/*.go" if not files else f"unexpected: {[f.name for f in files][:5]}"
 
 
+def check_no_destructive_custom_type(ctx: Ctx, args: dict) -> tuple[bool, str]:
+    """Detect the destructive-StateFunc anti-pattern.
+
+    The framework wires CustomType at the schema level — req.Config, req.Plan,
+    AND req.State all decode through the same ValueFromString. So a custom type
+    whose ValueFromString hashes (or otherwise destructively normalises) its
+    input means the API call in Create/Update gets the *hash*, not the
+    practitioner's raw value. The migration looks structurally correct under
+    weaker checks (DiffSuppressFunc absent, custom type present) but is broken
+    at runtime.
+
+    Per the skill's `references/state-and-types.md` "Destructive StateFunc"
+    section, the correct patterns are:
+      1. WriteOnly: true on the secret attribute (preferred), OR
+      2. Plain types.String + hash inside Create/Update before resp.State.SetAttribute, OR
+      3. A non-destructive custom type that preserves raw + hashes only for Equal.
+
+    This primitive passes if any of those is detected; fails if the
+    destructive-custom-type smoking gun is present (a hash function called
+    inside a ValueFromString method body) WITHOUT a WriteOnly attribute as a
+    compensating pattern.
+
+    args: file
+    """
+    src = ctx.src(args["file"])
+    if not src:
+        return False, f"file not found: {args['file']}"
+    no_comments = strip_go_comments(src)
+
+    # Pattern 1 — WriteOnly: true on any attribute. This is the preferred
+    # answer for hash-based StateFunc and short-circuits the check.
+    if re.search(r"\bWriteOnly:\s*true\b", no_comments):
+        return True, "WriteOnly: true present — framework's purpose-built answer for hash-based StateFunc"
+
+    # Find any ValueFromString method body and check for destructive operations
+    # inside it. We catch direct stdlib hash calls AND helper wrappers (anything
+    # named `Hash*`, `Normalize*`, etc.) AND case-folding (ToLower/ToUpper).
+    # Match: `func (T) ValueFromString(...) (...) { ... }` non-greedy.
+    vfs_iter = re.finditer(
+        r"func\s*\([^)]+\)\s+ValueFromString\s*\([^)]*\)\s*\([^)]*\)\s*\{",
+        no_comments)
+    destructive_calls = (
+        r"sha256\.|sha1\.|md5\.|sha512\.|hex\.EncodeToString|"
+        r"\bhash\.[A-Z]|fnv\.New|crc32\.|adler32\.|"
+        r"\.Hash[A-Z][a-zA-Z]*\s*\(|\bHash[A-Z][a-zA-Z]*\s*\(|"
+        r"strings\.ToLower\s*\(|strings\.ToUpper\s*\("
+    )
+    for m in vfs_iter:
+        # Find matching closing brace using a brace-balanced scan.
+        i = m.end()
+        depth = 1
+        n = len(no_comments)
+        while i < n and depth > 0:
+            c = no_comments[i]
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    body = no_comments[m.end():i]
+                    if re.search(destructive_calls, body):
+                        return False, (
+                            "destructive custom type detected: ValueFromString hashes its input. "
+                            "All of req.Config / req.Plan / req.State decode through the same custom "
+                            "type, so the API call in Create/Update will receive the hash, not the "
+                            "user's raw value. See state-and-types.md 'Destructive StateFunc' section."
+                        )
+                    break
+            i += 1
+
+    return True, "no destructive ValueFromString detected"
+
+
 def check_phrases_present(ctx: Ctx, args: dict) -> tuple[bool, str]:
     """Every phrase in `phrases` appears at least once in the named file (case-insensitive,
     regex-aware). Useful for "verbatim 12 step titles" style checks where a single
@@ -736,6 +809,7 @@ CHECK_REGISTRY: dict[str, callable] = {
     "go_build":                     check_go_build,
     "go_test":                      check_go_test,
     "phrases_present":              check_phrases_present,
+    "no_destructive_custom_type":   check_no_destructive_custom_type,
 }
 
 
