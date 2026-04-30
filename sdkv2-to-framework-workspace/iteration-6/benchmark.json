@@ -1,0 +1,1158 @@
+{
+  "metadata": {
+    "skill_name": "sdkv2-to-framework",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-04-30T16:10:47Z",
+    "evals_run": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "no sdkv2 literal"
+        },
+        {
+          "text": "go build ./... passes",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "no sdkv2 literal"
+        },
+        {
+          "text": "go build ./... passes",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "old_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "no sdkv2 literal"
+        },
+        {
+          "text": "go build ./... passes",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method found"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "identityschema package: True; RequiredForImport count: 2"
+        },
+        {
+          "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+          "passed": true,
+          "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+        },
+        {
+          "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "Identity.Set: 4; setIdentity helper calls: 0"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method found"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "identityschema package: True; RequiredForImport count: 2"
+        },
+        {
+          "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+          "passed": true,
+          "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+        },
+        {
+          "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "Identity.Set: 4; setIdentity helper calls: 0"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "old_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 0.6666666666666666,
+        "passed": 4,
+        "failed": 2,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method found"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "identityschema package: True; RequiredForImport count: 3"
+        },
+        {
+          "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+          "passed": true,
+          "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+        },
+        {
+          "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+          "passed": false,
+          "evidence": "Identity.Set: 0; setIdentity helper calls: 0"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "timeouts package imported"
+        },
+        {
+          "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+          "passed": true,
+          "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+          "passed": true,
+          "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+        },
+        {
+          "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+          "passed": true,
+          "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "timeouts package imported"
+        },
+        {
+          "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+          "passed": true,
+          "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+          "passed": true,
+          "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+        },
+        {
+          "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+          "passed": true,
+          "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "old_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "timeouts package imported"
+        },
+        {
+          "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+          "passed": true,
+          "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+          "passed": true,
+          "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+        },
+        {
+          "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+          "passed": true,
+          "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+          "passed": true,
+          "evidence": "Sensitive: True; WriteOnly: True"
+        },
+        {
+          "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+          "passed": true,
+          "evidence": "Computed: false (correct)"
+        },
+        {
+          "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+          "passed": true,
+          "evidence": "req.Config.Get found in Create or Update"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "ImportStateVerifyIgnore includes password"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "old_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+          "passed": true,
+          "evidence": "Sensitive: True; WriteOnly: True"
+        },
+        {
+          "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+          "passed": true,
+          "evidence": "Computed: false (correct)"
+        },
+        {
+          "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+          "passed": true,
+          "evidence": "req.Config.Get found in Create or Update"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "ImportStateVerifyIgnore includes password"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "old_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "still importing"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+          "passed": true,
+          "evidence": "Sensitive: True; WriteOnly: True"
+        },
+        {
+          "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+          "passed": true,
+          "evidence": "Computed: false (correct)"
+        },
+        {
+          "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+          "passed": true,
+          "evidence": "req.Config.Get found in Create or Update"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "ImportStateVerifyIgnore includes password"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "no sdkv2 literal"
+        },
+        {
+          "text": "go build ./... passes",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "no sdkv2 literal"
+        },
+        {
+          "text": "go build ./... passes",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "no sdkv2 literal"
+        },
+        {
+          "text": "go build ./... passes",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method found"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "identityschema package: True; RequiredForImport count: 2"
+        },
+        {
+          "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+          "passed": true,
+          "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+        },
+        {
+          "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "Identity.Set: 4; setIdentity helper calls: 0"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method found"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "identityschema package: True; RequiredForImport count: 2"
+        },
+        {
+          "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+          "passed": true,
+          "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+        },
+        {
+          "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "Identity.Set: 5; setIdentity helper calls: 0"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method found"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "identityschema package: True; RequiredForImport count: 3"
+        },
+        {
+          "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+          "passed": true,
+          "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+        },
+        {
+          "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "Identity.Set: 0; setIdentity helper calls: 4"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "timeouts package imported"
+        },
+        {
+          "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+          "passed": true,
+          "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+          "passed": true,
+          "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+        },
+        {
+          "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+          "passed": true,
+          "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "timeouts package imported"
+        },
+        {
+          "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+          "passed": true,
+          "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+          "passed": true,
+          "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+        },
+        {
+          "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+          "passed": true,
+          "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "timeouts package imported"
+        },
+        {
+          "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+          "passed": true,
+          "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+          "passed": true,
+          "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+        },
+        {
+          "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+          "passed": true,
+          "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+          "passed": true,
+          "evidence": "Sensitive: True; WriteOnly: True"
+        },
+        {
+          "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+          "passed": true,
+          "evidence": "Computed: false (correct)"
+        },
+        {
+          "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+          "passed": true,
+          "evidence": "req.Config.Get found in Create or Update"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "ImportStateVerifyIgnore includes password"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 2,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+          "passed": true,
+          "evidence": "Sensitive: True; WriteOnly: True"
+        },
+        {
+          "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+          "passed": true,
+          "evidence": "Computed: false (correct)"
+        },
+        {
+          "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+          "passed": true,
+          "evidence": "req.Config.Get found in Create or Update"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "ImportStateVerifyIgnore includes password"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 3,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 absent"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+          "passed": true,
+          "evidence": "Sensitive: True; WriteOnly: True"
+        },
+        {
+          "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+          "passed": true,
+          "evidence": "Computed: false (correct)"
+        },
+        {
+          "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+          "passed": true,
+          "evidence": "req.Config.Get found in Create or Update"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "ImportStateVerifyIgnore includes password"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "syntax + imports valid"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "old_skill": {
+      "pass_rate": {
+        "mean": 0.8889,
+        "stddev": 0.1086,
+        "min": 0.6667,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "-0.11",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

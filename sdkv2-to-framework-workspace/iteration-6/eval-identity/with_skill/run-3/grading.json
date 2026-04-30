@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 absent"
+    },
+    {
+      "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+      "passed": true,
+      "evidence": "IdentitySchema method found"
+    },
+    {
+      "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+      "passed": true,
+      "evidence": "identityschema package: True; RequiredForImport count: 3"
+    },
+    {
+      "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+      "passed": true,
+      "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+    },
+    {
+      "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+      "passed": true,
+      "evidence": "Identity.Set: 0; setIdentity helper calls: 4"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": true,
+      "evidence": "syntax + imports valid"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}

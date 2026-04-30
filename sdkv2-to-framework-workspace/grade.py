@@ -81,6 +81,21 @@ def grep_count(haystack: str, pattern: str, flags: int = 0) -> int:
     return len(re.findall(pattern, haystack, flags))
 
 
+def imports_sdkv2(src: str) -> bool:
+    """True iff the Go source has an actual `import "..../terraform-plugin-sdk/v2/..."`
+    statement (not just a string in a comment, doc, or test fixture). The negative
+    gate cares about real imports, not lexical mentions.
+
+    Match shape: a double-quoted string literal whose content begins with the SDKv2
+    path. Strip line comments first so // mentions don't trigger.
+    """
+    # Strip // line comments. Block /* */ comments are rarer in Go imports; a quick
+    # regex handles them too.
+    no_block = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    no_line = re.sub(r"//[^\n]*", "", no_block)
+    return bool(re.search(r'"github\.com/hashicorp/terraform-plugin-sdk/v2[^"]*"', no_line))
+
+
 # -----------------------------------------------------------------------------
 # Real go-toolchain checks against a temporary clone state
 # -----------------------------------------------------------------------------
@@ -371,11 +386,11 @@ def grade_migration(out_dir: Path, eval_id: int, file_basename: str,
     test_src = read(test_path) if test_path.exists() else ""
     expectations = []
 
-    sdkv2_in_src = "terraform-plugin-sdk/v2" in src
+    sdkv2_in_src = imports_sdkv2(src)
     expectations.append(expectation(
         "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
         passed=not sdkv2_in_src,
-        evidence=f"src has sdkv2 import: {sdkv2_in_src}; test: {'terraform-plugin-sdk/v2' in test_src}",
+        evidence=f"src has sdkv2 import: {sdkv2_in_src}; test: {imports_sdkv2(test_src)}",
     ))
 
     if is_resource:
@@ -579,8 +594,8 @@ def grade_defaults_pitfall(out_dir: Path, file_basename: str, no_go_checks: bool
 
     expectations.append(expectation(
         "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
-        passed="terraform-plugin-sdk/v2" not in src,
-        evidence="sdkv2 import absent" if "terraform-plugin-sdk/v2" not in src else "still imports sdkv2",
+        passed=not imports_sdkv2(src),
+        evidence="sdkv2 import absent" if not imports_sdkv2(src) else "still imports sdkv2",
     ))
 
     # Every framework `Default:` line should reference the *default package, not a plan modifier.
@@ -690,8 +705,8 @@ def grade_chained_upgraders(out_dir: Path, no_go_checks: bool) -> list[dict]:
 
     expectations.append(expectation(
         "Migrated file no longer imports terraform-plugin-sdk/v2",
-        passed="terraform-plugin-sdk/v2" not in src,
-        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "sdkv2 still imported",
+        passed=not imports_sdkv2(src),
+        evidence="sdkv2 absent" if not imports_sdkv2(src) else "sdkv2 still imported",
     ))
 
     upgrade_state_method = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+UpgradeState\s*\(", src))
@@ -746,8 +761,8 @@ def grade_cross_attr(out_dir: Path, file_basename: str, no_go_checks: bool) -> l
 
     expectations.append(expectation(
         "Migrated file no longer imports terraform-plugin-sdk/v2",
-        passed="terraform-plugin-sdk/v2" not in src,
-        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+        passed=not imports_sdkv2(src),
+        evidence="sdkv2 absent" if not imports_sdkv2(src) else "still importing",
     ))
 
     # Per-attribute validator pattern using path.Expressions
@@ -788,8 +803,8 @@ def grade_identity(out_dir: Path, file_basename: str, no_go_checks: bool) -> lis
 
     expectations.append(expectation(
         "Migrated file no longer imports terraform-plugin-sdk/v2",
-        passed="terraform-plugin-sdk/v2" not in src,
-        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+        passed=not imports_sdkv2(src),
+        evidence="sdkv2 absent" if not imports_sdkv2(src) else "still importing",
     ))
 
     has_identity_method = bool(re.search(r"func\s*\(\w+\s+\*?\w+\)\s+IdentitySchema\s*\(", src))
@@ -818,12 +833,15 @@ def grade_identity(out_dir: Path, file_basename: str, no_go_checks: bool) -> lis
         evidence=f"ImportState method: {has_import_state}; legacy path (req.ID/SplitN): {legacy_path}; modern path (req.Identity / ImportStatePassthroughWithIdentity): {modern_path}",
     ))
 
-    # resp.Identity.Set in Create / Update / Read (at least one — preferably all).
-    identity_writes = len(re.findall(r"resp\.Identity\.Set", src))
+    # Identity is written somewhere in CRUD: directly via resp.Identity.Set / *.Identity.Set,
+    # or factored through a `setIdentity(...)` helper (a common idiom).
+    direct_writes = len(re.findall(r"\bIdentity\.Set\s*\(", src))
+    helper_calls = len(re.findall(r"\bsetIdentity\s*\(", src))
+    identity_writes = direct_writes + helper_calls
     expectations.append(expectation(
-        "Identity is set in Create / Update / Read (resp.Identity.Set call present)",
+        "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
         passed=identity_writes >= 1,
-        evidence=f"resp.Identity.Set occurrences: {identity_writes}",
+        evidence=f"Identity.Set: {direct_writes}; setIdentity helper calls: {helper_calls}",
     ))
 
     go = check_compile_and_provider(out_dir, run_test_provider=False, no_go_checks=no_go_checks)
@@ -843,8 +861,8 @@ def grade_writeonly(out_dir: Path, file_basename: str, no_go_checks: bool) -> li
 
     expectations.append(expectation(
         "Migrated file no longer imports terraform-plugin-sdk/v2",
-        passed="terraform-plugin-sdk/v2" not in src,
-        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+        passed=not imports_sdkv2(src),
+        evidence="sdkv2 absent" if not imports_sdkv2(src) else "still importing",
     ))
 
     # Find the password attribute block and check Sensitive: true AND WriteOnly: true.
@@ -916,8 +934,8 @@ def grade_timeouts(out_dir: Path, file_basename: str, no_go_checks: bool) -> lis
 
     expectations.append(expectation(
         "Migrated file no longer imports terraform-plugin-sdk/v2",
-        passed="terraform-plugin-sdk/v2" not in src,
-        evidence="sdkv2 absent" if "terraform-plugin-sdk/v2" not in src else "still importing",
+        passed=not imports_sdkv2(src),
+        evidence="sdkv2 absent" if not imports_sdkv2(src) else "still importing",
     ))
 
     imports_timeouts_pkg = "terraform-plugin-framework-timeouts/resource/timeouts" in src

@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": false,
+      "evidence": "still importing"
+    },
+    {
+      "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+      "passed": true,
+      "evidence": "Sensitive: True; WriteOnly: True"
+    },
+    {
+      "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+      "passed": true,
+      "evidence": "Computed: false (correct)"
+    },
+    {
+      "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
+      "passed": true,
+      "evidence": "req.Config.Get found in Create or Update"
+    },
+    {
+      "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+      "passed": true,
+      "evidence": "ImportStateVerifyIgnore includes password"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": true,
+      "evidence": "syntax + imports valid"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.8333333333333334
+  }
+}
