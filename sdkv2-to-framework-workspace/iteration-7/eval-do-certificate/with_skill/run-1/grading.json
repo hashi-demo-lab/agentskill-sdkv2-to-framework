@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements ResourceWithUpgradeState (UpgradeState method present, V0 state upgrader migrated)",
+      "passed": true,
+      "evidence": "UpgradeState method present"
+    },
+    {
+      "text": "Each StateUpgrader entry has a PriorSchema field set",
+      "passed": true,
+      "evidence": "matched: PriorSchema:"
+    },
+    {
+      "text": "StateFunc translated (custom type implementing basetypes.StringValuable / Typable, OR a plan modifier)",
+      "passed": true,
+      "evidence": "matched: stringplanmodifier."
+    },
+    {
+      "text": "No destructive custom type (a ValueFromString that hashes/normalises the input \u2014 sends the hash to the API instead of the user's value). Per the skill: use WriteOnly OR plain types.String + hash in CRUD instead.",
+      "passed": true,
+      "evidence": "no destructive ValueFromString detected"
+    },
+    {
+      "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "ConflictsWith translated to framework validators (any per-type validator package OR resource-level ResourceWithConfigValidators)",
+      "passed": true,
+      "evidence": "matched: stringvalidator.ConflictsWith"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}
