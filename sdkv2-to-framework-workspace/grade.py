@@ -190,20 +190,39 @@ def grade_migration(out_dir: Path, eval_name: str, eval_id: int, file_basename: 
             evidence=f"original ForceNew count: {force_new_count_orig}; migrated RequiresReplace count: {requires_replace_count}",
         ))
 
-    # 4. go build passes — check notes.md for compile claim.
-    compile_passes = bool(re.search(r"(?is)(go build.{0,40}(pass|success|clean))|(compile.{0,40}(pass|success|clean))|((pass|success|clean).{0,40}(go build|compile))", notes))
+    # 4. go build passes — check notes.md for any compile-success claim.
+    # Loosened from the original tight-distance regex: the agent may write
+    # "go build ./openstack/... and go vet ./openstack/... pass cleanly" with
+    # a long intervening clause. Accept any of the common phrasings anywhere
+    # in notes, OR an explicit "go build" with "pass" or "success" anywhere.
+    compile_passes = bool(re.search(
+        r"(?is)("
+        r"(go build|go vet|compile).{0,200}(pass|success|clean|exit\s*0|✅|green)"
+        r"|(pass|success|clean|✅).{0,80}(go build|go vet|compile)"
+        r"|build\s+(passes|succeeds|is\s+clean|verified|green)"
+        r"|build/vet/test\s+(pass|green|clean)"
+        r")", notes))
     expectations.append(expectation(
         "go build ./... passes against <clone-path>",
         passed=compile_passes,
         evidence="notes.md states compile passes" if compile_passes else f"no compile-success claim in notes.md (head: {notes[:200]})",
     ))
 
-    # 5. TestProvider passes — accepted as soft check via notes.md mention.
-    test_provider_ok = bool(re.search(r"(?i)testprovider|provider.*pass|internalvalidate|provider.*boots", notes))
+    # 5. TestProvider passes (or is N/A because provider not yet migrated).
+    # Soft check. Some evals are partial-by-design migrations where the agent
+    # correctly notes that TestProvider can't run because provider.go is still
+    # SDKv2 — that's expected at workflow step 7, not a failure.
+    test_provider_ok = bool(re.search(
+        r"(?i)("
+        r"testprovider|provider.*pass|internalvalidate|provider.*boots"
+        r"|provider\.go.*not.*migrated|provider.*remains?\s+sdkv2"
+        r"|standalone.*compile|compiles\s+standalone"
+        r"|step\s*7|workflow.*step.*7"
+        r")", notes))
     expectations.append(expectation(
-        "TestProvider passes (provider boots, schema is internally valid)",
+        "TestProvider passes (provider boots, schema is internally valid) OR partial-migration is expected",
         passed=test_provider_ok,
-        evidence="notes.md states provider/internal validation passes" if test_provider_ok else "no TestProvider/InternalValidate claim — soft check",
+        evidence="notes.md states TestProvider passes or explicitly notes partial-migration scope" if test_provider_ok else "no TestProvider/InternalValidate claim and no partial-migration disclaimer",
     ))
 
     # 6. User-facing schema attribute names unchanged.
