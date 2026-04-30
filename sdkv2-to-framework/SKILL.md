@@ -51,7 +51,7 @@ Before HashiCorp's step 1, run the bundled audit script to inventory the provide
 bash <skill-path>/scripts/audit_sdkv2.sh <provider-repo-path>
 ```
 
-The script is grep-based (POSIX) and emits a summary plus a "needs manual review" bucket for patterns it can't analyse safely (multi-line nested `Elem: &schema.Resource{...}`, `MaxItems: 1` candidates, `StateUpgraders`, custom `Importer`, `Timeouts`). Read every flagged file directly before proposing edits — the audit is rough inventory, not authoritative AST analysis.
+The script drives [semgrep](https://semgrep.dev) with the rules at `scripts/audit_sdkv2.semgrep.yml` (AST-aware Go pattern matching) and emits a summary table per rule + a per-file complexity ranking + a "needs manual review" bucket. The bucket flags patterns where the decision is judgment-rich and a human/LLM should read the file directly before proposing edits — not patterns the script couldn't parse. Current judgment-required signals: `MaxItems: 1` block-vs-attribute, `StateUpgraders` (single-step composition), custom `Importer` (composite-ID parsing), `Timeouts`, `CustomizeDiff`, `StateFunc`, `DiffSuppressFunc`, nested `Elem &Resource`, cross-attribute constraints (`ConflictsWith`/etc.), legacy `MigrateState`.
 
 Populate the audit using `<skill-path>/assets/audit_template.md`.
 
