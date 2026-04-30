@@ -1,0 +1,202 @@
+running semgrep (this may take 10-30s on large providers)...
+# SDKv2 → Framework Migration Audit
+
+**Provider:** v3    **Audited:** 2026-04-30    **SDKv2 version:** v2.38.1
+
+## Summary
+
+- Files audited: 236
+- ResourcesMap references: **1**
+- DataSourcesMap references: **1**
+- ForceNew: true: **637**
+- ValidateFunc / ValidateDiagFunc: **140**
+- DiffSuppressFunc: **8**
+- CustomizeDiff: **3**
+- StateFunc: **4**
+- Sensitive: true: **20**
+- Deprecated attribute: **1**
+- Default: ... (defaults package, NOT PlanModifiers): **88**
+- ConflictsWith / ExactlyOneOf / AtLeastOneOf / RequiredWith: **110**
+- Set: hashFunc (drop in framework): **39**
+- MigrateState (legacy SDKv2 v1.x): **0**
+- Importer: **101**
+- Timeouts: **68**
+- StateUpgraders: **1**
+- SchemaVersion: **1**
+- MaxItems:1 + nested Elem (block decision): **11**
+- Nested Elem &Resource (any block): **71**
+- MinItems > 0 (true repeating block): **7**
+
+## Per-file findings (top 20 by complexity)
+
+| File | ForceNew | Validators | StateUpgraders | MaxItems:1 (block) | NestedElem | Importer | CustomizeDiff | StateFunc |
+|------|---------:|-----------:|---------------:|-------------------:|-----------:|---------:|--------------:|----------:|
+| openstack/resource_openstack_compute_instance_v2.go | 33 | 2 | 0 | 1 | 5 | 1 | 1 | 1 |
+| openstack/resource_openstack_db_instance_v1.go | 21 | 0 | 0 | 1 | 4 | 0 | 0 | 0 |
+| openstack/resource_openstack_networking_port_v2.go | 7 | 2 | 0 | 1 | 4 | 1 | 0 | 1 |
+| openstack/resource_openstack_networking_secgroup_rule_v2.go | 12 | 5 | 0 | 0 | 0 | 1 | 0 | 1 |
+| openstack/resource_openstack_images_image_v2.go | 7 | 6 | 0 | 0 | 0 | 1 | 1 | 0 |
+| openstack/data_source_openstack_networking_subnet_ids_v2.go | 13 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
+| openstack/resource_openstack_keymanager_order_v1.go | 9 | 3 | 0 | 1 | 1 | 1 | 0 | 0 |
+| openstack/resource_openstack_lb_pool_v2.go | 5 | 5 | 0 | 1 | 1 | 1 | 0 | 0 |
+| openstack/resource_openstack_keymanager_secret_v1.go | 10 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
+| openstack/resource_openstack_networking_subnet_v2.go | 10 | 4 | 0 | 0 | 1 | 1 | 0 | 0 |
+| openstack/data_source_openstack_networking_port_ids_v2.go | 17 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| openstack/resource_openstack_blockstorage_volume_v3.go | 13 | 1 | 0 | 0 | 2 | 1 | 0 | 0 |
+| openstack/data_source_openstack_images_image_v2.go | 12 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| openstack/resource_openstack_identity_application_credential_v3.go | 12 | 2 | 0 | 0 | 1 | 1 | 0 | 0 |
+| openstack/data_source_openstack_images_image_ids_v2.go | 11 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| openstack/resource_openstack_containerinfra_cluster_v1.go | 17 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| openstack/resource_openstack_objectstorage_container_v1.go | 3 | 1 | 1 | 1 | 1 | 1 | 0 | 0 |
+| openstack/resource_openstack_taas_tap_mirror_v2.go | 8 | 1 | 0 | 1 | 1 | 1 | 0 | 0 |
+| openstack/resource_openstack_lb_listener_v2.go | 5 | 4 | 0 | 0 | 0 | 1 | 0 | 0 |
+| openstack/resource_openstack_networking_bgp_peer_v2.go | 5 | 3 | 0 | 0 | 0 | 1 | 1 | 0 |
+
+## Needs manual review
+
+Read these files directly. Even with semgrep's AST-aware matching, the *decision* (block vs nested attribute, single-step state upgrade, composite-ID importer parsing) requires human/LLM judgment.
+
+- openstack/data_source_openstack_blockstorage_volume_v3.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_compute_flavor_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_compute_instance_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_compute_servergroup_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_fw_group_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_fw_policy_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_fw_rule_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_identity_auth_scope_v3.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_identity_project_ids_v3.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_identity_project_v3.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_images_image_ids_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_images_image_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_keymanager_container_v1.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_lb_flavor_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_lb_flavorprofile_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_lb_listener_v2.go — nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_lb_loadbalancer_v2.go — nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_lb_member_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_lb_monitor_v2.go — nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_lb_pool_v2.go — nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_loadbalancer_flavor_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_networking_network_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_networking_port_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_networking_router_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_networking_subnet_ids_v2.go — ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/data_source_openstack_networking_subnet_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_networking_trunk_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/data_source_openstack_sharedfilesystem_share_v2.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/keymanager_v1.go — nested Elem &Resource (block-vs-nested decision)
+- openstack/migrate_resource_openstack_objectstorage_container_v1.go — MaxItems:1 (block-vs-nested-attribute decision); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_bgpvpn_network_associate_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_bgpvpn_port_associate_v2.go — custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_bgpvpn_router_associate_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_bgpvpn_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_blockstorage_qos_association_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_blockstorage_qos_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_blockstorage_quotaset_v3.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_blockstorage_volume_attach_v3.go — Timeouts (separate framework package)
+- openstack/resource_openstack_blockstorage_volume_type_access_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_blockstorage_volume_type_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_blockstorage_volume_v3.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_compute_aggregate_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_compute_flavor_access_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_compute_flavor_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_compute_instance_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); Timeouts (separate framework package); CustomizeDiff (becomes ModifyPlan); StateFunc (becomes custom type); DiffSuppressFunc (analyse intent); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_compute_interface_attach_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_compute_keypair_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_compute_quotaset_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_compute_servergroup_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_compute_volume_attach_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_containerinfra_cluster_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_containerinfra_clustertemplate_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_containerinfra_nodegroup_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_db_configuration_v1.go — Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_db_database_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_db_instance_v1.go — MaxItems:1 (block-vs-nested-attribute decision); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_db_user_v1.go — Timeouts (separate framework package)
+- openstack/resource_openstack_dns_quota_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_dns_recordset_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_dns_transfer_accept_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_dns_transfer_request_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_dns_zone_share_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_dns_zone_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_fw_group_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_fw_policy_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_fw_rule_v2.go — custom Importer (composite ID parsing?); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_identity_application_credential_v3.go — custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_identity_ec2_credential_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_endpoint_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_group_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_inherit_role_assignment_v3.go — custom Importer (composite ID parsing?); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_identity_limit_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_project_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_registered_limit_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_role_assignment_v3.go — custom Importer (composite ID parsing?); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_identity_role_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_service_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_user_membership_v3.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_identity_user_v3.go — custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_images_image_access_accept_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_images_image_access_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_images_image_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); CustomizeDiff (becomes ModifyPlan); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_keymanager_container_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_keymanager_order_v1.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_keymanager_secret_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); DiffSuppressFunc (analyse intent)
+- openstack/resource_openstack_lb_flavor_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_lb_flavorprofile_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); StateFunc (becomes custom type); DiffSuppressFunc (analyse intent)
+- openstack/resource_openstack_lb_l7policy_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_lb_l7rule_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_lb_listener_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); DiffSuppressFunc (analyse intent); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_lb_loadbalancer_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_lb_member_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_lb_members_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_lb_monitor_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_lb_pool_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_lb_quota_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_address_group_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_addressscope_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_bgp_peer_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); CustomizeDiff (becomes ModifyPlan)
+- openstack/resource_openstack_networking_bgp_speaker_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_networking_floatingip_associate_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_networking_floatingip_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_networking_network_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_networking_port_secgroup_associate_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_networking_port_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); Timeouts (separate framework package); StateFunc (becomes custom type); DiffSuppressFunc (analyse intent); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_networking_portforwarding_v2.go — Timeouts (separate framework package)
+- openstack/resource_openstack_networking_qos_bandwidth_limit_rule_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_qos_dscp_marking_rule_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_qos_minimum_bandwidth_rule_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_qos_policy_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_quota_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_rbac_policy_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_networking_router_interface_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_router_route_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_networking_router_routes_v2.go — custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_networking_router_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_networking_secgroup_rule_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); StateFunc (becomes custom type); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_networking_secgroup_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_segment_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_networking_subnet_route_v2.go — custom Importer (composite ID parsing?)
+- openstack/resource_openstack_networking_subnet_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_networking_subnetpool_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_networking_trunk_v2.go — Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_objectstorage_account_v1.go — custom Importer (composite ID parsing?); DiffSuppressFunc (analyse intent)
+- openstack/resource_openstack_objectstorage_container_v1.go — MaxItems:1 (block-vs-nested-attribute decision); StateUpgraders/SchemaVersion (single-step semantics); custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_objectstorage_object_v1.go — DiffSuppressFunc (analyse intent); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_orchestration_stack_v1.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_sharedfilesystem_securityservice_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_sharedfilesystem_share_access_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_sharedfilesystem_share_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_sharedfilesystem_sharenetwork_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_taas_tap_mirror_v2.go — MaxItems:1 (block-vs-nested-attribute decision); custom Importer (composite ID parsing?); nested Elem &Resource (block-vs-nested decision); ConflictsWith/ExactlyOneOf/etc. (validator routing decision)
+- openstack/resource_openstack_vpnaas_endpoint_group_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_vpnaas_ike_policy_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_vpnaas_ipsec_policy_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_vpnaas_service_v2.go — custom Importer (composite ID parsing?); Timeouts (separate framework package)
+- openstack/resource_openstack_vpnaas_site_connection.go — custom Importer (composite ID parsing?); Timeouts (separate framework package); nested Elem &Resource (block-vs-nested decision)
+- openstack/resource_openstack_workflow_cron_trigger_v2.go — custom Importer (composite ID parsing?)
+
+## Next steps
+
+1. Read every file listed under 'Needs manual review' before proposing edits.
+2. Populate `assets/checklist_template.md` from this audit (one entry per resource).
+3. Confirm scope with the user before starting workflow step 1.

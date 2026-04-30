@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 absent"
+    },
+    {
+      "text": "UpgradeState returns map with both prior versions 0 AND 1 (V0\u2192current AND V1\u2192current)",
+      "passed": false,
+      "evidence": "UpgradeState method: True; map entries: []"
+    },
+    {
+      "text": "Each StateUpgrader entry sets PriorSchema (must have at least 2 distinct PriorSchema values)",
+      "passed": true,
+      "evidence": "PriorSchema references: ['priorSchemaV0()', 'priorSchemaV1()']"
+    },
+    {
+      "text": "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+      "passed": true,
+      "evidence": "V0 stays independent"
+    },
+    {
+      "text": "schema.Schema.Version is set to 2 (current version)",
+      "passed": true,
+      "evidence": "Version: 2"
+    },
+    {
+      "text": "Migrated source imports terraform-plugin-framework (compile-relevant \u2014 fixture is standalone, not part of a provider clone)",
+      "passed": true,
+      "evidence": "framework imports present"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.8333333333333334
+  }
+}

@@ -1,39 +1,39 @@
 {
   "expectations": [
     {
-      "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules",
       "passed": true,
-      "evidence": "cites blocks.md / skill guidance"
+      "evidence": "cites blocks.md"
     },
     {
-      "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+      "text": "Reasoning identifies at least 4 distinct supporting considerations",
       "passed": true,
-      "evidence": "reasoning has 10 ## sections, 6 numbered points (max=10)"
+      "evidence": "10 ## sections, 6 numbered points (max=10)"
     },
     {
-      "text": "Reasoning correctly identifies whether the SDKv2 schema was TypeSet vs TypeList and maps to SetNestedBlock vs ListNestedBlock accordingly",
+      "text": "Reasoning correctly maps SDKv2 TypeSet \u2194 framework SetNestedBlock (vs TypeList \u2194 ListNestedBlock)",
       "passed": true,
-      "evidence": "reasoning correlates TypeSet \u2192 SetNestedBlock"
+      "evidence": "TypeSet \u2192 SetNestedBlock mapping found"
     },
     {
-      "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock \u2014 they are NOT converted to ListNestedAttribute",
+      "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock (NOT ListNestedAttribute)",
       "passed": true,
-      "evidence": "ListNestedBlock/SetNestedBlock present: True; ListNestedAttribute present (wrong): False"
+      "evidence": "ListNested/SetNestedBlock present: True; ListNestedAttribute (wrong): False"
     },
     {
-      "text": "The response justifies why blocks are preserved (HCL syntax compatibility with existing practitioner configurations)",
+      "text": "Response justifies why blocks are preserved (HCL syntax compatibility)",
       "passed": true,
-      "evidence": "HCL/syntax/backward mention: True; reasoning size: 3990 chars"
+      "evidence": "HCL/syntax/backward mention: True; reasoning size: 3990"
     },
     {
-      "text": "go build ./... passes against <clone-path>",
+      "text": "Schema source contains valid framework constructs (soft check \u2014 full compile check requires the whole resource)",
       "passed": true,
-      "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+      "evidence": "framework schema constructs present: True"
     },
     {
       "text": "User-facing schema attribute names are unchanged",
       "passed": true,
-      "evidence": "original: 8; migrated map: 8; full_mention: True; missing: []"
+      "evidence": "original: 8; migrated_map: 8; coverage: 100%; missing: []"
     }
   ],
   "summary": {

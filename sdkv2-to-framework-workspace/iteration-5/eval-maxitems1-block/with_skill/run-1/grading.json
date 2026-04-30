@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules",
+      "passed": true,
+      "evidence": "cites blocks.md"
+    },
+    {
+      "text": "Reasoning identifies at least 4 distinct supporting considerations",
+      "passed": true,
+      "evidence": "6 ## sections, 3 numbered points (max=6)"
+    },
+    {
+      "text": "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
+      "passed": true,
+      "evidence": "SingleNestedAttribute: True; ListNestedBlock+SizeAtMost(1): True"
+    },
+    {
+      "text": "Reasoning explicitly justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
+      "passed": true,
+      "evidence": "reasoning size: 4537 chars; matched phrase: backward-compat"
+    },
+    {
+      "text": "If SingleNestedAttribute was chosen, the response notes the syntactic HCL change for practitioners",
+      "passed": true,
+      "evidence": "syntax/hcl/breaking mentioned: True"
+    },
+    {
+      "text": "Schema source contains valid framework constructs (soft check \u2014 full compile check requires the whole resource)",
+      "passed": true,
+      "evidence": "framework schema constructs present: True"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged",
+      "passed": true,
+      "evidence": "original: 20; migrated_map: 21; coverage: 100%; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

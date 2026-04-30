@@ -3,7 +3,7 @@
     {
       "text": "The migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
       "passed": true,
-      "evidence": "matched 12/12 step titles. matched: ['sufficient test coverage', 'data consistency', 'via the framework', 'provider definition', 'provider schema', 'resources, data sources, and other Terraform', 'tests to use the framework, and ensure that the tests fail', 'Migrate the resource or data source', 'tests now pass', 'remaining references to SDKv2', 'all of your tests continue to pass', 'release a new version']; missing: []"
+      "evidence": "matched 12/12. missing: []"
     },
     {
       "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",

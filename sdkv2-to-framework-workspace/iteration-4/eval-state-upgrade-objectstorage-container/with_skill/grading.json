@@ -6,50 +6,55 @@
       "evidence": "src has sdkv2 import: False; test: False"
     },
     {
-      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete present)",
       "passed": true,
       "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
     },
     {
       "text": "go build ./... passes against <clone-path>",
-      "passed": true,
-      "evidence": "notes.md states compile passes"
+      "passed": false,
+      "evidence": "openstack/resource_openstack_objectstorage_container_v1.go:14:2: no required module provides package github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator\nopenstack/resource_openstack_objectstorage_container_v1.go:15:2: no required module provides package github.com/hashicorp/terrafo"
     },
     {
-      "text": "TestProvider passes (provider boots, schema is internally valid) OR partial-migration is expected",
+      "text": "TestProvider passes (provider boots, schema is internally valid) OR a partial-migration scope is honoured",
       "passed": true,
-      "evidence": "notes.md states TestProvider passes or explicitly notes partial-migration scope"
+      "evidence": "TestProvider not run (partial migration)"
     },
     {
-      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "text": "No unrelated *.go files under openstack/ were modified by the agent",
       "passed": true,
-      "evidence": "original attrs: 15; migrated map: 16; full_mention: True; missing: []"
+      "evidence": "clean"
     },
     {
-      "text": "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version (\u226590% schema-map coverage AND every name appears in the migrated source)",
+      "passed": true,
+      "evidence": "original: 15; migrated_map: 16; full_mention: True; coverage: 100%; missing: []"
+    },
+    {
+      "text": "Implements resource.ResourceWithUpgradeState (UpgradeState method present)",
       "passed": true,
       "evidence": "UpgradeState method found"
     },
     {
-      "text": "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
+      "text": "Each StateUpgrader entry has a PriorSchema field set",
       "passed": true,
       "evidence": "PriorSchema reference found"
     },
     {
-      "text": "The upgrader function for prior version N produces the CURRENT (target) version's state in one call (not chained)",
+      "text": "Upgrader for prior version N produces the CURRENT (target) state in one call",
       "passed": true,
-      "evidence": "notes.md mentions single-step/target/current semantics"
+      "evidence": "notes.md mentions single-step semantics"
     },
     {
-      "text": "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
+      "text": "schema.Schema.Version on the migrated resource matches SDKv2 SchemaVersion",
       "passed": true,
-      "evidence": "schema.Schema{Version: ...} found"
+      "evidence": "Version field found on schema.Schema"
     }
   ],
   "summary": {
     "passed": 9,
-    "failed": 0,
-    "total": 9,
-    "pass_rate": 1.0
+    "failed": 1,
+    "total": 10,
+    "pass_rate": 0.9
   }
 }

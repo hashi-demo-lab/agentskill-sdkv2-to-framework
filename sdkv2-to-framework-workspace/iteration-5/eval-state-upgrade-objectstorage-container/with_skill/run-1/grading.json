@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "src has sdkv2 import: False; test: False"
+    },
+    {
+      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete present)",
+      "passed": true,
+      "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": false,
+      "evidence": "openstack/resource_openstack_objectstorage_container_v1.go:13:2: no required module provides package github.com/hashicorp/terraform-plugin-framework-validators/setvalidator; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework-validators/setvalidator\nopenstack/resource_openstack_objectstorage_container_v1.go:14:2: no required module provides package github.com/hashicorp/terraform-plu"
+    },
+    {
+      "text": "TestProvider passes (provider boots, schema is internally valid) OR a partial-migration scope is honoured",
+      "passed": true,
+      "evidence": "TestProvider not run (partial migration)"
+    },
+    {
+      "text": "No unrelated *.go files under openstack/ were modified by the agent",
+      "passed": true,
+      "evidence": "clean"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version (\u226590% schema-map coverage AND every name appears in the migrated source)",
+      "passed": true,
+      "evidence": "original: 15; migrated_map: 16; full_mention: True; coverage: 100%; missing: []"
+    },
+    {
+      "text": "Implements resource.ResourceWithUpgradeState (UpgradeState method present)",
+      "passed": true,
+      "evidence": "UpgradeState method found"
+    },
+    {
+      "text": "Each StateUpgrader entry has a PriorSchema field set",
+      "passed": true,
+      "evidence": "PriorSchema reference found"
+    },
+    {
+      "text": "Upgrader for prior version N produces the CURRENT (target) state in one call",
+      "passed": true,
+      "evidence": "notes.md mentions single-step semantics"
+    },
+    {
+      "text": "schema.Schema.Version on the migrated resource matches SDKv2 SchemaVersion",
+      "passed": true,
+      "evidence": "Version field found on schema.Schema"
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 1,
+    "total": 10,
+    "pass_rate": 0.9
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": false,
+      "evidence": "still imports sdkv2"
+    },
+    {
+      "text": "All Default: fields use the framework's *default package (stringdefault, int64default, etc.) \u2014 NOT PlanModifiers",
+      "passed": true,
+      "evidence": "Default lines: 5; using defaults pkg: 5; offenders: []"
+    },
+    {
+      "text": "No `default` value appears inside any PlanModifiers slice",
+      "passed": true,
+      "evidence": "defaults stay outside PlanModifiers"
+    },
+    {
+      "text": "Every attribute with a Default is also Computed: true",
+      "passed": true,
+      "evidence": "attrs-with-default: 5; computed-true: 5"
+    },
+    {
+      "text": "go build ./... passes",
+      "passed": false,
+      "evidence": "openstack/resource_openstack_vpnaas_ike_policy_v2.go:11:2: no required module provides package github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts\nopenstack/resource_openstack_vpnaas_ike_policy_v2.go:12:2: no required module provides package github.com/hashicorp/terraform-plugin-fr"
+    },
+    {
+      "text": "No unrelated *.go files under openstack/ were modified",
+      "passed": true,
+      "evidence": "clean"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 2,
+    "total": 6,
+    "pass_rate": 0.6666666666666666
+  }
+}

@@ -6,35 +6,40 @@
       "evidence": "src has sdkv2 import: False; test: False"
     },
     {
-      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete present)",
       "passed": true,
       "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
     },
     {
-      "text": "Every audited ForceNew attribute now uses RequiresReplace plan modifier",
+      "text": "Every ForceNew attribute now has a corresponding RequiresReplace plan modifier (no off-by-one tolerance)",
       "passed": true,
-      "evidence": "original ForceNew count: 5; migrated RequiresReplace count: 5"
+      "evidence": "original ForceNew: 5; migrated RequiresReplace: 5"
     },
     {
       "text": "go build ./... passes against <clone-path>",
-      "passed": true,
-      "evidence": "notes.md states compile passes"
+      "passed": false,
+      "evidence": "openstack/resource_openstack_compute_keypair_v2.go:17:2: no required module provides package github.com/hashicorp/terraform-plugin-framework/path; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework/path\nopenstack/resource_openstack_compute_keypair_v2.go:11:2: no required module provides package github.com/hashicorp/terraform-plugin-framework/resource; to add it:\n\tgo get github.com/"
     },
     {
-      "text": "TestProvider passes (provider boots, schema is internally valid) OR partial-migration is expected",
+      "text": "TestProvider passes (provider boots, schema is internally valid) OR a partial-migration scope is honoured",
       "passed": true,
-      "evidence": "notes.md states TestProvider passes or explicitly notes partial-migration scope"
+      "evidence": "TestProvider not run (partial migration)"
     },
     {
-      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "text": "No unrelated *.go files under openstack/ were modified by the agent",
       "passed": true,
-      "evidence": "original attrs: 7; migrated map: 8; full_mention: True; missing: []"
+      "evidence": "clean"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version (\u226590% schema-map coverage AND every name appears in the migrated source)",
+      "passed": true,
+      "evidence": "original: 7; migrated_map: 8; full_mention: True; coverage: 100%; missing: []"
     }
   ],
   "summary": {
     "passed": 6,
-    "failed": 0,
-    "total": 6,
-    "pass_rate": 1.0
+    "failed": 1,
+    "total": 7,
+    "pass_rate": 0.8571428571428571
   }
 }

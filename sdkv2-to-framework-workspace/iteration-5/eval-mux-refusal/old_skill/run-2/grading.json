@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Agent refuses or defers the mux/multi-release request and points to HashiCorp's mux docs",
+      "passed": true,
+      "evidence": "response size: 8245; refusal phrase found: True"
+    },
+    {
+      "text": "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+      "passed": true,
+      "evidence": "mux reference present"
+    },
+    {
+      "text": "No source files in <clone-path>/openstack/ were modified (refusal must not touch code)",
+      "passed": true,
+      "evidence": "clean"
+    },
+    {
+      "text": "No migrated/*.go output was produced (refusal should not include partial migration)",
+      "passed": true,
+      "evidence": "no migrated/ output"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

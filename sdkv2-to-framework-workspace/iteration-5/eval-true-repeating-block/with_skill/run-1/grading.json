@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules",
+      "passed": true,
+      "evidence": "cites blocks.md"
+    },
+    {
+      "text": "Reasoning identifies at least 4 distinct supporting considerations",
+      "passed": true,
+      "evidence": "8 ## sections, 0 numbered points (max=8)"
+    },
+    {
+      "text": "Reasoning correctly maps SDKv2 TypeSet \u2194 framework SetNestedBlock (vs TypeList \u2194 ListNestedBlock)",
+      "passed": true,
+      "evidence": "TypeSet \u2192 SetNestedBlock mapping found"
+    },
+    {
+      "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock (NOT ListNestedAttribute)",
+      "passed": true,
+      "evidence": "ListNested/SetNestedBlock present: True; ListNestedAttribute (wrong): False"
+    },
+    {
+      "text": "Response justifies why blocks are preserved (HCL syntax compatibility)",
+      "passed": true,
+      "evidence": "HCL/syntax/backward mention: True; reasoning size: 8188"
+    },
+    {
+      "text": "Schema source contains valid framework constructs (soft check \u2014 full compile check requires the whole resource)",
+      "passed": true,
+      "evidence": "framework schema constructs present: True"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged",
+      "passed": true,
+      "evidence": "original: 8; migrated_map: 9; coverage: 100%; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "skill_name": "sdkv2-to-framework",
+  "evals": [
+    {
+      "id": 1,
+      "name": "eval-inventory-only",
+      "prompt": "I'm planning a SDKv2 → framework migration of the Terraform provider at <clone-path>. Don't change any code yet — give me an inventory and a phased migration checklist that I can review with my team before we start editing.",
+      "expected_output": "An audit report (per-file counts table + needs-manual-review bucket) and a populated migration checklist that enumerates all 12 HashiCorp single-release-cycle steps verbatim. No source files in the repo are modified.",
+      "files": [],
+      "expectations": [
+        "The migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+        "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+        "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+        "The audit report identifies at least one file under 'needs manual review' (any provider with state upgraders, MaxItems:1 blocks, or custom importers should produce at least one)",
+        "No source files in <clone-path>/openstack/ have been modified (git status clean for *.go)",
+        "The produced inventory artefact is under 100 KB"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "eval-data-source-availability-zones",
+      "prompt": "Migrate the data source defined in <clone-path>/openstack/data_source_openstack_blockstorage_availability_zones_v3.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "A migrated data source implementing the framework's datasource.DataSource interface, a typed model struct with tfsdk tags, and an updated test file using ProtoV6ProviderFactories. The post-migration verify_tests.sh layered checks pass.",
+      "files": [],
+      "expectations": [
+        "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+        "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
+        "The migrated file uses the datasource/schema package, not the resource/schema package",
+        "User-facing schema attribute names are unchanged from the SDKv2 version",
+        "go build ./... passes against <clone-path>",
+        "TestProvider passes (provider boots, schema is internally valid)"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "eval-resource-keypair",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_compute_keypair_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file (resource_openstack_compute_keypair_v2_test.go). Don't migrate anything else in the repo.",
+      "expected_output": "A migrated resource implementing the framework's resource.Resource interface (Metadata, Schema, Create, Read, Update, Delete; Configure and ImportState as applicable), with ForceNew attributes converted to RequiresReplace plan modifiers and validators translated. The post-migration verify_tests.sh layered checks pass.",
+      "files": [],
+      "expectations": [
+        "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+        "The migrated file implements resource.Resource (at least Metadata, Schema, Create, Read, Update, Delete methods are present)",
+        "Every attribute that had ForceNew: true in SDKv2 now has stringplanmodifier.RequiresReplace() (or the appropriate kind-typed equivalent) in PlanModifiers",
+        "Validators are translated from ValidateFunc/ValidateDiagFunc into the Validators slice using terraform-plugin-framework-validators",
+        "User-facing schema attribute names are unchanged from the SDKv2 version",
+        "go build ./... passes against <clone-path>",
+        "TestProvider passes"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "eval-maxitems1-block",
+      "prompt": "Migrate just the schema (not the CRUD methods, not the tests) of the resource defined in <clone-path>/openstack/resource_openstack_lb_pool_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Pay particular attention to how MaxItems: 1 blocks should be represented in the framework — make the right call between SingleNestedAttribute and ListNestedBlock and explain your reasoning.",
+      "expected_output": "A schema-only migration that converts MaxItems: 1 blocks to SingleNestedAttribute (or, with explicit reasoning, keeps them as ListNestedBlock with a SizeAtMost(1) validator for backward compatibility). The reasoning is recorded in a comment or commit message.",
+      "files": [],
+      "expectations": [
+        "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
+        "The choice between SingleNestedAttribute and ListNestedBlock is justified in either an inline comment, a commit message, or the response text",
+        "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners (block syntax → attribute syntax)",
+        "go build ./... passes against <clone-path>",
+        "User-facing schema attribute names are unchanged"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "eval-true-repeating-block",
+      "prompt": "Migrate just the schema (not the CRUD methods, not the tests) of the resource defined in <clone-path>/openstack/resource_openstack_compute_volume_attach_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Note that this resource uses a true repeating block (MinItems > 0 or no MaxItems): the migration should keep block syntax to preserve practitioner HCL.",
+      "expected_output": "A schema-only migration that keeps repeating blocks as ListNestedBlock or SetNestedBlock (NOT converted to ListNestedAttribute), preserving the practitioner-facing HCL syntax.",
+      "files": [],
+      "expectations": [
+        "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock — they are NOT converted to ListNestedAttribute",
+        "The response justifies why blocks are preserved (HCL syntax compatibility with existing practitioner configurations)",
+        "go build ./... passes against <clone-path>",
+        "User-facing schema attribute names and block names are unchanged"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "eval-state-upgrade-objectstorage-container",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_objectstorage_container_v1.go (and its sibling state-upgrade file <clone-path>/openstack/migrate_resource_openstack_objectstorage_container_v1.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a SchemaVersion > 0 and a V0 state upgrader — translate it to the framework's single-step UpgradeState semantics. Update the corresponding test file.",
+      "expected_output": "A migrated resource that implements resource.ResourceWithUpgradeState. Each upgrader function takes a PriorSchema and produces the current (target) state in one call (NOT chained). The post-migration verify_tests.sh layered checks pass.",
+      "files": [],
+      "expectations": [
+        "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
+        "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
+        "The upgrader function for prior version N produces the CURRENT (target) version's state in one call — it does not return an intermediate version expecting another upgrader to chain",
+        "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+        "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+        "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
+        "go build ./... passes against <clone-path>",
+        "TestProvider passes"
+      ]
+    }
+  ]
+}

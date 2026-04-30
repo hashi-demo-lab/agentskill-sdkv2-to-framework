@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": false,
+      "evidence": "still importing"
+    },
+    {
+      "text": "Cross-attribute constraints are translated using framework validators (per-attribute with path.Expressions OR resource-level ResourceWithConfigValidators)",
+      "passed": true,
+      "evidence": "per_attr_path: True; resource_level: False; validator_pkg: True"
+    },
+    {
+      "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+      "passed": true,
+      "evidence": "no sdkv2 literal"
+    },
+    {
+      "text": "go build ./... passes",
+      "passed": false,
+      "evidence": "openstack/resource_openstack_compute_interface_attach_v2.go:13:2: no required module provides package github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts; to add it:\n\tgo get github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts\nopenstack/resource_openstack_compute_interface_attach_v2.go:14:2: no required module provides package github.com/hashicorp/terra"
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "total": 4,
+    "pass_rate": 0.5
+  }
+}

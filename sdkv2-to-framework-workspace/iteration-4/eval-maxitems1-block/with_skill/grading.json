@@ -1,14 +1,14 @@
 {
   "expectations": [
     {
-      "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules",
       "passed": true,
-      "evidence": "cites blocks.md / skill guidance"
+      "evidence": "cites blocks.md"
     },
     {
-      "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+      "text": "Reasoning identifies at least 4 distinct supporting considerations",
       "passed": true,
-      "evidence": "reasoning has 8 ## sections, 5 numbered points (max=8)"
+      "evidence": "8 ## sections, 5 numbered points (max=8)"
     },
     {
       "text": "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
@@ -16,24 +16,24 @@
       "evidence": "SingleNestedAttribute: True; ListNestedBlock+SizeAtMost(1): True"
     },
     {
-      "text": "The choice between SingleNestedAttribute and ListNestedBlock is justified in either an inline comment, a commit message, or the response text",
+      "text": "Reasoning explicitly justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
       "passed": true,
-      "evidence": "reasoning.md size 6290 chars; mentions compat/syntax/block: True"
+      "evidence": "reasoning size: 6290 chars; matched phrase: Practitioner"
     },
     {
-      "text": "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners",
+      "text": "If SingleNestedAttribute was chosen, the response notes the syntactic HCL change for practitioners",
       "passed": true,
       "evidence": "syntax/hcl/breaking mentioned: True"
     },
     {
-      "text": "go build ./... passes against <clone-path>",
+      "text": "Schema source contains valid framework constructs (soft check \u2014 full compile check requires the whole resource)",
       "passed": true,
-      "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+      "evidence": "framework schema constructs present: True"
     },
     {
       "text": "User-facing schema attribute names are unchanged",
       "passed": true,
-      "evidence": "original: 20; migrated map: 20; full_mention: True; missing: []"
+      "evidence": "original: 20; migrated_map: 20; coverage: 100%; missing: []"
     }
   ],
   "summary": {
