@@ -153,6 +153,18 @@ Before writing a custom type by hand, check whether HashiCorp's companion packag
 
 If neither covers your case, write a custom type. JSON normalisation and CIDR handling alone account for most real-world `DiffSuppressFunc` migrations.
 
+### Destructive `StateFunc` — do NOT use a destructive custom type
+
+A common SDKv2 pattern is `StateFunc: hashString` on a secret attribute (the raw secret never persists in state; only its hash does). It's tempting to translate this directly to a custom type whose `ValueFromString` hashes the input. **Don't.** `CustomType` is wired at the schema level, so `req.Config`, `req.Plan`, and `req.State` all decode through `ValueFromString` — there is no `req.Plan` value with the unhashed original. By the time `Create` reads the plan, the secret is already hashed; the API call sends a hash and silently fails.
+
+Three correct patterns, in preference order:
+
+1. **`WriteOnly: true`** (framework v1.14+). The raw value flows from config to your API call but is never persisted. This is the framework's purpose-built answer for "secret Terraform doesn't need to read back" — see `references/sensitive-and-writeonly.md`. If WriteOnly fits your case, prefer it.
+2. **Plain `types.String` + hash in `Create`/`Update`, then store the hash via `resp.State.SetAttribute`**. The schema attribute carries no `CustomType`; the resource model holds raw values; you hash explicitly before writing state. Drift detection becomes the resource's responsibility (compare hashes in `Read` against the stored hash and re-issue when they differ).
+3. **Non-destructive custom type that preserves raw + exposes hash via `Equal`**. The value type holds both the raw input AND a derived hash; `ValueFromString` keeps the raw, `Equal` compares hashes. This is the closest analogue to SDKv2's `DiffSuppressFunc`-via-hash but is genuinely fiddly. Reach for it only when (1) and (2) don't apply.
+
+If you have already shipped a destructive custom type, it's a real production bug — practitioners' API calls send the hash to the upstream API. Treat it as a state-breaking fix.
+
 ## SDKv2 → framework cheatsheet
 
 | SDKv2 | Framework |

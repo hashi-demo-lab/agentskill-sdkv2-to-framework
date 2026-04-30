@@ -140,6 +140,37 @@ These three are demonstrated by the worked example above. Three things to intern
 - **State access**: every `d.Get`/`d.Set`/`d.Id`/`d.HasChange` operation translates to typed access on a model struct — the canonical conversion table is in `state-and-types.md`. Read that file before writing CRUD bodies.
 - **Diagnostics**: replace `diag.FromErr(err)` / `diag.Errorf(...)` with `resp.Diagnostics.AddError("op", err.Error())` (or `AddWarning` / `AddAttributeError`). After any call that may add diagnostics, check `resp.Diagnostics.HasError()` and return early.
 
+## Computed-but-API-meaningful fields on update
+
+A pattern SDKv2 handled implicitly that the framework makes you think about: an attribute that's `Computed` (the API determines its value) but whose value is also *required by the API on every update call*. SDKv2's `*ResourceData` returned the prior-state value via `d.Get(...)` because state was the only readable source. The framework's behaviour depends on the plan modifier:
+
+- **With `UseStateForUnknown` plan modifier** (idiomatic for stable-after-create computed fields): `req.Plan` carries the prior-state value forward, so `plan.Foo.ValueString()` works directly. No special handling needed. See `references/plan-modifiers.md`.
+- **Without `UseStateForUnknown`**: `req.Plan` has the value as `unknown` (Terraform hasn't recomputed it yet); `plan.Foo.ValueString()` returns the empty string. Source from `req.State` instead.
+
+The wrong thing is to call `plan.Foo.ValueString()` on an unknown value and pass empty/zero to the API. The right thing depends on which case you're in:
+
+```go
+func (r *thingResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    var plan, state thingModel
+    resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+    resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+    if resp.Diagnostics.HasError() { return }
+
+    // `default` is Computed without UseStateForUnknown — Plan has it unknown,
+    // State has the last-known value.
+    apiPayload := updateRequest{
+        Name:    plan.Name.ValueString(),    // user-changeable
+        Default: state.Default.ValueBool(),  // server-determined; carry forward from state
+    }
+    // ... call API, then write resp.State from the API *response* (the API may
+    // have changed the value as a side effect of the update).
+}
+```
+
+A third pattern: when the API recomputes the field on every update (e.g., a `last_modified` timestamp the server always overwrites), neither plan nor prior state is right — read state, send it for the round trip, then overwrite the model with the API response value before writing back.
+
+The shape applies whenever an attribute is `Computed` *and* the API requires it as input on update (immutable server-derived fields, defaults the API tracks, virtual provisioning IDs the practitioner never sees, etc.).
+
 ## Read drift handling
 
 In SDKv2 you call `d.SetId("")` when the resource is gone to trigger recreation. In the framework, call `resp.State.RemoveResource(ctx)`. Doing nothing is wrong — Terraform will think the resource still exists.

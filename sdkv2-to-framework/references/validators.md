@@ -52,6 +52,9 @@ From `terraform-plugin-framework-validators`. Module path: `github.com/hashicorp
 |---|---|
 | `validation.StringLenBetween(min, max)` | `stringvalidator.LengthBetween(min, max)` |
 | `validation.StringIsNotEmpty` | `stringvalidator.LengthAtLeast(1)` |
+| `validation.NoZeroValues` (string) | `stringvalidator.LengthAtLeast(1)`. **Don't** also flip `Optional: true` → `Required: true`; that's a breaking schema change. SDKv2's `NoZeroValues` only fires on configured zero values, which `LengthAtLeast(1)` already does — `Required` is a separate concern (presence) handled by the existing schema flag. |
+| `validation.NoZeroValues` (int / float) | `int64validator.NoneOf(0)` / `float64validator.NoneOf(0)`. |
+| `validation.NoZeroValues` (bool) | `boolvalidator.OneOf(true)` is the literal port (since the bool zero value is `false`), but it's almost always a bug in the original SDKv2 schema — the validator forces the field to always be `true`, at which point why is it user-configurable? Double-check the original intent before mechanically porting. |
 | `validation.StringMatch(re, msg)` | `stringvalidator.RegexMatches(re, msg)` |
 | `validation.StringInSlice(opts, false)` | `stringvalidator.OneOf(opts...)` |
 | `validation.IntBetween(min, max)` | `int64validator.Between(int64(min), int64(max))` |

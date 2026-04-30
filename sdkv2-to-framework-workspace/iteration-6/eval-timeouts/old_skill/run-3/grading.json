@@ -3,38 +3,43 @@
     {
       "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
       "passed": false,
-      "evidence": "still importing"
+      "evidence": "still imports terraform-plugin-sdk/v2"
     },
     {
       "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
       "passed": true,
-      "evidence": "timeouts package imported"
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
     },
     {
-      "text": "Uses timeouts.Block(...) inside Blocks (preserves HCL block syntax) \u2014 NOT timeouts.Attributes",
+      "text": "Uses timeouts.Block(...) (preserves HCL block syntax)",
       "passed": true,
-      "evidence": "timeouts.Block: True; timeouts.Attributes (wrong for migration): False"
+      "evidence": "matched: timeouts.Block("
     },
     {
-      "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\" tag",
+      "text": "Does NOT use timeouts.Attributes(...) \u2014 would change practitioner-visible HCL syntax",
       "passed": true,
-      "evidence": "Timeouts timeouts.Value `tfsdk:\"timeouts\"` field found"
+      "evidence": "absent"
     },
     {
-      "text": "Create / Delete methods invoke plan.Timeouts.Create(ctx, ...) or .Delete(ctx, ...) and use the resulting context",
+      "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\"",
       "passed": true,
-      "evidence": "Timeouts.{Create|Delete}(ctx, ...) invocation found"
+      "evidence": "matched: Timeouts   timeouts.Value `tfsdk:\"timeouts\"`"
     },
     {
-      "text": "go build ./... passes against <clone-path>",
+      "text": "Create / Delete invoke plan.Timeouts.Create(ctx, ...) / .Delete(ctx, ...)",
       "passed": true,
-      "evidence": "syntax + imports valid"
+      "evidence": "matched: .Timeouts.Create(ctx"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
     }
   ],
   "summary": {
-    "passed": 5,
+    "passed": 6,
     "failed": 1,
-    "total": 6,
-    "pass_rate": 0.8333333333333334
+    "total": 7,
+    "pass_rate": 0.8571428571428571
   }
 }

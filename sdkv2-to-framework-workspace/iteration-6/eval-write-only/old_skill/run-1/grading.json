@@ -3,38 +3,33 @@
     {
       "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
       "passed": false,
-      "evidence": "still importing"
+      "evidence": "still imports terraform-plugin-sdk/v2"
     },
     {
-      "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true",
+      "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true; is NOT Computed",
       "passed": true,
-      "evidence": "Sensitive: True; WriteOnly: True"
+      "evidence": "\"password\" matches expected properties"
     },
     {
-      "text": "Password attribute is NOT Computed (WriteOnly + Computed is forbidden)",
+      "text": "In CRUD methods, the password is read from req.Config (write-only values aren't in Plan/State)",
       "passed": true,
-      "evidence": "Computed: false (correct)"
-    },
-    {
-      "text": "In Create / Update, the password is read from req.Config, not req.Plan or req.State",
-      "passed": true,
-      "evidence": "req.Config.Get found in Create or Update"
+      "evidence": "matched: req.Config.Get"
     },
     {
       "text": "Test file includes ImportStateVerifyIgnore listing the password field",
       "passed": true,
-      "evidence": "ImportStateVerifyIgnore includes password"
+      "evidence": "matched: ImportStateVerifyIgnore: []string{\"password\""
     },
     {
-      "text": "go build ./... passes against <clone-path>",
+      "text": "Migrated file is syntactically valid Go",
       "passed": true,
-      "evidence": "syntax + imports valid"
+      "evidence": "gofmt -e clean"
     }
   ],
   "summary": {
-    "passed": 5,
+    "passed": 4,
     "failed": 1,
-    "total": 6,
-    "pass_rate": 0.8333333333333334
+    "total": 5,
+    "pass_rate": 0.8
   }
 }

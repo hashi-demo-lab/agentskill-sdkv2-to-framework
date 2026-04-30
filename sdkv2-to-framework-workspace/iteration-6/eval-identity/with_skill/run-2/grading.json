@@ -3,38 +3,43 @@
     {
       "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
       "passed": true,
-      "evidence": "sdkv2 absent"
+      "evidence": "sdkv2 import absent"
     },
     {
-      "text": "Implements resource.ResourceWithIdentity (IdentitySchema method present)",
+      "text": "Implements ResourceWithIdentity (IdentitySchema method present)",
       "passed": true,
-      "evidence": "IdentitySchema method found"
+      "evidence": "IdentitySchema method present"
     },
     {
       "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
       "passed": true,
-      "evidence": "identityschema package: True; RequiredForImport count: 2"
+      "evidence": "matched 2 (need >= 2)"
     },
     {
-      "text": "ImportState handles both legacy req.ID composite parsing AND modern req.Identity passthrough",
+      "text": "ImportState parses legacy req.ID composite (strings.SplitN or equivalent)",
       "passed": true,
-      "evidence": "ImportState method: True; legacy path (req.ID/SplitN): True; modern path (req.Identity / ImportStatePassthroughWithIdentity): True"
+      "evidence": "matched: req.ID"
     },
     {
-      "text": "Identity is set in Create / Update / Read (Identity.Set call OR setIdentity helper invoked)",
+      "text": "ImportState handles modern req.Identity (ImportStatePassthroughWithIdentity OR direct req.Identity reads)",
       "passed": true,
-      "evidence": "Identity.Set: 5; setIdentity helper calls: 0"
+      "evidence": "matched: req.Identity"
     },
     {
-      "text": "go build ./... passes against <clone-path>",
+      "text": "Identity is written somewhere (Identity.Set or setIdentity helper invoked)",
       "passed": true,
-      "evidence": "syntax + imports valid"
+      "evidence": "matched: Identity.Set("
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
     }
   ],
   "summary": {
-    "passed": 6,
+    "passed": 7,
     "failed": 0,
-    "total": 6,
+    "total": 7,
     "pass_rate": 1.0
   }
 }
