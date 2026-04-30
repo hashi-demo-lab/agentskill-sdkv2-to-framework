@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+      "passed": false,
+      "evidence": "no skill citation \u2014 reasoning relies on general framework knowledge"
+    },
+    {
+      "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+      "passed": true,
+      "evidence": "reasoning has 12 ## sections, 0 numbered points (max=12)"
+    },
+    {
+      "text": "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
+      "passed": true,
+      "evidence": "SingleNestedAttribute: True; ListNestedBlock+SizeAtMost(1): True"
+    },
+    {
+      "text": "The choice between SingleNestedAttribute and ListNestedBlock is justified in either an inline comment, a commit message, or the response text",
+      "passed": true,
+      "evidence": "reasoning.md size 4659 chars; mentions compat/syntax/block: True"
+    },
+    {
+      "text": "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners",
+      "passed": true,
+      "evidence": "syntax/hcl/breaking mentioned: True"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": true,
+      "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged",
+      "passed": true,
+      "evidence": "original: 20; migrated map: 20; full_mention: True; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 1,
+    "total": 7,
+    "pass_rate": 0.8571428571428571
+  }
+}

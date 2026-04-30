@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "The migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+      "passed": false,
+      "evidence": "matched 8/12 step titles. matched: ['sufficient test coverage', 'data consistency', 'via the framework', 'provider definition', 'provider schema', 'tests now pass', 'remaining references to SDKv2', 'release a new version']; missing: ['resources, data sources, and other Terraform', 'tests to use the framework, and ensure that the tests fail', 'Migrate the resource or data source', 'all of your tests continue to pass']"
+    },
+    {
+      "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+      "passed": true,
+      "evidence": "tests to use the framework and ensure tests **fail** first. *(TDD gate: write tests red"
+    },
+    {
+      "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+      "passed": true,
+      "evidence": "data-consistency"
+    },
+    {
+      "text": "The audit report identifies at least one file under 'needs manual review'",
+      "passed": true,
+      "evidence": "Needs manual review"
+    },
+    {
+      "text": "No source files in <clone-path>/openstack/ have been modified (git status clean for *.go)",
+      "passed": true,
+      "evidence": "clean"
+    },
+    {
+      "text": "The produced inventory artefact is under 100 KB",
+      "passed": true,
+      "evidence": "audit_report.md = 31351 bytes"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.8333333333333334
+  }
+}

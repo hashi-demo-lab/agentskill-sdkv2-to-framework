@@ -1,0 +1,15 @@
+{
+  "eval_id": 6,
+  "eval_name": "eval-state-upgrade-objectstorage-container",
+  "prompt": "Migrate the resource defined in /Users/simon.lynch/git/terraform-provider-openstack/openstack/resource_openstack_objectstorage_container_v1.go (and its sibling state-upgrade file /Users/simon.lynch/git/terraform-provider-openstack/openstack/migrate_resource_openstack_objectstorage_container_v1.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a SchemaVersion > 0 and a V0 state upgrader \u2014 translate it to the framework's single-step UpgradeState semantics. Update the corresponding test file.",
+  "expectations": [
+    "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
+    "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
+    "The upgrader function for prior version N produces the CURRENT (target) version's state in one call \u2014 it does not return an intermediate version expecting another upgrader to chain",
+    "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+    "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+    "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
+    "go build ./... passes against <clone-path>",
+    "TestProvider passes"
+  ]
+}

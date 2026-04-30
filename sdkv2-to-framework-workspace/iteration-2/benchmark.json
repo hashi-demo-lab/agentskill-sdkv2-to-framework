@@ -1,0 +1,709 @@
+{
+  "metadata": {
+    "skill_name": "sdkv2-to-framework",
+    "comparison": "iteration-2 minimal-references vs iteration-1 bundled-references",
+    "executor_model": "claude-sonnet-4-6",
+    "timestamp": "2026-04-30T09:15:00.885974+00:00",
+    "evals_run": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "eval-inventory-only",
+      "configuration": "with_skill_minimal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 328.0,
+        "tokens": 70031,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+          "passed": false,
+          "evidence": "matched 8/12 step titles. matched: ['sufficient test coverage', 'data consistency', 'via the framework', 'provider definition', 'provider schema', 'tests now pass', 'remaining references to SDKv2', 'release a new version']; missing: ['resources, data sources, and other Terraform', 'tests to use the framework, and ensure that the tests fail', 'Migrate the resource or data source', 'all of your tests continue to pass']"
+        },
+        {
+          "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+          "passed": true,
+          "evidence": "tests to use the framework and ensure tests **fail** first. *(TDD gate: write tests red"
+        },
+        {
+          "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+          "passed": true,
+          "evidence": "data-consistency"
+        },
+        {
+          "text": "The audit report identifies at least one file under 'needs manual review'",
+          "passed": true,
+          "evidence": "Needs manual review"
+        },
+        {
+          "text": "No source files in <clone-path>/openstack/ have been modified (git status clean for *.go)",
+          "passed": true,
+          "evidence": "clean"
+        },
+        {
+          "text": "The produced inventory artefact is under 100 KB",
+          "passed": true,
+          "evidence": "audit_report.md = 31351 bytes"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "eval-inventory-only",
+      "configuration": "with_skill_bundled",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 351.2,
+        "tokens": 54760,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+          "passed": true,
+          "evidence": "matched 12/12 step titles. matched: ['sufficient test coverage', 'data consistency', 'via the framework', 'provider definition', 'provider schema', 'resources, data sources, and other Terraform', 'tests to use the framework, and ensure that the tests fail', 'Migrate the resource or data source', 'tests now pass', 'remaining references to SDKv2', 'all of your tests continue to pass', 'release a new version']; missing: []"
+        },
+        {
+          "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+          "passed": true,
+          "evidence": "tests to use the framework, and ensure that the tests fail. *(TDD gate \u2014 tests fail"
+        },
+        {
+          "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+          "passed": true,
+          "evidence": "data consistency"
+        },
+        {
+          "text": "The audit report identifies at least one file under 'needs manual review'",
+          "passed": true,
+          "evidence": "Needs manual review"
+        },
+        {
+          "text": "No source files in <clone-path>/openstack/ have been modified (git status clean for *.go)",
+          "passed": true,
+          "evidence": "clean"
+        },
+        {
+          "text": "The produced inventory artefact is under 100 KB",
+          "passed": true,
+          "evidence": "audit_report.md = 23389 bytes"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-data-source-availability-zones",
+      "configuration": "with_skill_minimal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6666666666666666,
+        "passed": 4,
+        "failed": 2,
+        "total": 6,
+        "time_seconds": 340.9,
+        "tokens": 59798,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "src has sdkv2 import: False; test: False"
+        },
+        {
+          "text": "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
+          "passed": true,
+          "evidence": "methods found: ['Metadata', 'Schema', 'Read']"
+        },
+        {
+          "text": "The migrated file uses the datasource/schema package, not the resource/schema package",
+          "passed": true,
+          "evidence": "datasource/schema: True; resource/schema: False"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": false,
+          "evidence": "no compile-success claim in notes.md (head: # Migration Notes: openstack_blockstorage_availability_zones_v3\n\n## What was migrated\n\n`openstack/data_source_openstack_blockstorage_availability_zones_v3.go` from\n`terraform-plugin-sdk/v2` to `terraf)"
+        },
+        {
+          "text": "TestProvider passes (provider boots, schema is internally valid)",
+          "passed": false,
+          "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "original attrs: 3; migrated map: 4; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-data-source-availability-zones",
+      "configuration": "with_skill_bundled",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 320.7,
+        "tokens": 45615,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "src has sdkv2 import: False; test: False"
+        },
+        {
+          "text": "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
+          "passed": true,
+          "evidence": "methods found: ['Metadata', 'Schema', 'Read']"
+        },
+        {
+          "text": "The migrated file uses the datasource/schema package, not the resource/schema package",
+          "passed": true,
+          "evidence": "datasource/schema: True; resource/schema: False"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "notes.md states compile passes"
+        },
+        {
+          "text": "TestProvider passes (provider boots, schema is internally valid)",
+          "passed": true,
+          "evidence": "notes.md states provider/internal validation passes"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "original attrs: 3; migrated map: 4; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-resource-keypair",
+      "configuration": "with_skill_minimal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 331.0,
+        "tokens": 57348,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "src has sdkv2 import: False; test: False"
+        },
+        {
+          "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+          "passed": true,
+          "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Every audited ForceNew attribute now uses RequiresReplace plan modifier",
+          "passed": true,
+          "evidence": "original ForceNew count: 5; migrated RequiresReplace count: 5"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "notes.md states compile passes"
+        },
+        {
+          "text": "TestProvider passes (provider boots, schema is internally valid)",
+          "passed": false,
+          "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "original attrs: 7; migrated map: 8; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-resource-keypair",
+      "configuration": "with_skill_bundled",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 454.7,
+        "tokens": 60493,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "src has sdkv2 import: False; test: False"
+        },
+        {
+          "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+          "passed": true,
+          "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Every audited ForceNew attribute now uses RequiresReplace plan modifier",
+          "passed": true,
+          "evidence": "original ForceNew count: 5; migrated RequiresReplace count: 6"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "notes.md states compile passes"
+        },
+        {
+          "text": "TestProvider passes (provider boots, schema is internally valid)",
+          "passed": false,
+          "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "original attrs: 7; migrated map: 8; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "eval-maxitems1-block",
+      "configuration": "with_skill_minimal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8571428571428571,
+        "passed": 6,
+        "failed": 1,
+        "total": 7,
+        "time_seconds": 103.9,
+        "tokens": 29207,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "passed": false,
+          "evidence": "no skill citation \u2014 reasoning relies on general framework knowledge"
+        },
+        {
+          "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+          "passed": true,
+          "evidence": "reasoning has 12 ## sections, 0 numbered points (max=12)"
+        },
+        {
+          "text": "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
+          "passed": true,
+          "evidence": "SingleNestedAttribute: True; ListNestedBlock+SizeAtMost(1): True"
+        },
+        {
+          "text": "The choice between SingleNestedAttribute and ListNestedBlock is justified in either an inline comment, a commit message, or the response text",
+          "passed": true,
+          "evidence": "reasoning.md size 4659 chars; mentions compat/syntax/block: True"
+        },
+        {
+          "text": "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners",
+          "passed": true,
+          "evidence": "syntax/hcl/breaking mentioned: True"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged",
+          "passed": true,
+          "evidence": "original: 20; migrated map: 20; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "eval-maxitems1-block",
+      "configuration": "with_skill_bundled",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 106.5,
+        "tokens": 33508,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "passed": true,
+          "evidence": "cites blocks.md / skill guidance"
+        },
+        {
+          "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+          "passed": true,
+          "evidence": "reasoning has 8 ## sections, 5 numbered points (max=8)"
+        },
+        {
+          "text": "MaxItems: 1 blocks have been migrated either to SingleNestedAttribute or to ListNestedBlock with listvalidator.SizeAtMost(1)",
+          "passed": true,
+          "evidence": "SingleNestedAttribute: False; ListNestedBlock+SizeAtMost(1): True"
+        },
+        {
+          "text": "The choice between SingleNestedAttribute and ListNestedBlock is justified in either an inline comment, a commit message, or the response text",
+          "passed": true,
+          "evidence": "reasoning.md size 4480 chars; mentions compat/syntax/block: True"
+        },
+        {
+          "text": "If SingleNestedAttribute was chosen, the response notes that this is a syntactic HCL change for practitioners",
+          "passed": true,
+          "evidence": "ListNestedBlock chosen \u2014 syntactic-change disclaimer not required"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged",
+          "passed": true,
+          "evidence": "original: 20; migrated map: 21; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "eval-true-repeating-block",
+      "configuration": "with_skill_minimal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 72.2,
+        "tokens": 23559,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "passed": true,
+          "evidence": "cites blocks.md / skill guidance"
+        },
+        {
+          "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+          "passed": true,
+          "evidence": "reasoning has 8 ## sections, 0 numbered points (max=8)"
+        },
+        {
+          "text": "Reasoning correctly identifies whether the SDKv2 schema was TypeSet vs TypeList and maps to SetNestedBlock vs ListNestedBlock accordingly",
+          "passed": true,
+          "evidence": "reasoning correlates TypeSet \u2192 SetNestedBlock"
+        },
+        {
+          "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock \u2014 they are NOT converted to ListNestedAttribute",
+          "passed": true,
+          "evidence": "ListNestedBlock/SetNestedBlock present: True; ListNestedAttribute present (wrong): False"
+        },
+        {
+          "text": "The response justifies why blocks are preserved (HCL syntax compatibility with existing practitioner configurations)",
+          "passed": true,
+          "evidence": "HCL/syntax/backward mention: True; reasoning size: 4838 chars"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged",
+          "passed": true,
+          "evidence": "original: 8; migrated map: 8; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "eval-true-repeating-block",
+      "configuration": "with_skill_bundled",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 85.6,
+        "tokens": 25434,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "passed": true,
+          "evidence": "cites blocks.md / skill guidance"
+        },
+        {
+          "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+          "passed": true,
+          "evidence": "reasoning has 5 ## sections, 0 numbered points (max=5)"
+        },
+        {
+          "text": "Reasoning correctly identifies whether the SDKv2 schema was TypeSet vs TypeList and maps to SetNestedBlock vs ListNestedBlock accordingly",
+          "passed": true,
+          "evidence": "reasoning correlates TypeSet \u2192 SetNestedBlock"
+        },
+        {
+          "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock \u2014 they are NOT converted to ListNestedAttribute",
+          "passed": true,
+          "evidence": "ListNestedBlock/SetNestedBlock present: True; ListNestedAttribute present (wrong): False"
+        },
+        {
+          "text": "The response justifies why blocks are preserved (HCL syntax compatibility with existing practitioner configurations)",
+          "passed": true,
+          "evidence": "HCL/syntax/backward mention: True; reasoning size: 2850 chars"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged",
+          "passed": true,
+          "evidence": "original: 8; migrated map: 8; full_mention: True; missing: []"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "eval-state-upgrade-objectstorage-container",
+      "configuration": "with_skill_minimal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7777777777777778,
+        "passed": 7,
+        "failed": 2,
+        "total": 9,
+        "time_seconds": 271.5,
+        "tokens": 63656,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": false,
+          "evidence": "src has sdkv2 import: True; test: True"
+        },
+        {
+          "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+          "passed": true,
+          "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "notes.md states compile passes"
+        },
+        {
+          "text": "TestProvider passes (provider boots, schema is internally valid)",
+          "passed": false,
+          "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "original attrs: 15; migrated map: 16; full_mention: True; missing: []"
+        },
+        {
+          "text": "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
+          "passed": true,
+          "evidence": "UpgradeState method found"
+        },
+        {
+          "text": "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
+          "passed": true,
+          "evidence": "PriorSchema reference found"
+        },
+        {
+          "text": "The upgrader function for prior version N produces the CURRENT (target) version's state in one call (not chained)",
+          "passed": true,
+          "evidence": "notes.md mentions single-step/target/current semantics"
+        },
+        {
+          "text": "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
+          "passed": true,
+          "evidence": "schema.Schema{Version: ...} found"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "eval-state-upgrade-objectstorage-container",
+      "configuration": "with_skill_bundled",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8888888888888888,
+        "passed": 8,
+        "failed": 1,
+        "total": 9,
+        "time_seconds": 780.8,
+        "tokens": 80043,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "src has sdkv2 import: False; test: False"
+        },
+        {
+          "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+          "passed": true,
+          "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "go build ./... passes against <clone-path>",
+          "passed": true,
+          "evidence": "notes.md states compile passes"
+        },
+        {
+          "text": "TestProvider passes (provider boots, schema is internally valid)",
+          "passed": false,
+          "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "original attrs: 15; migrated map: 16; full_mention: True; missing: []"
+        },
+        {
+          "text": "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
+          "passed": true,
+          "evidence": "UpgradeState method found"
+        },
+        {
+          "text": "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
+          "passed": true,
+          "evidence": "PriorSchema reference found"
+        },
+        {
+          "text": "The upgrader function for prior version N produces the CURRENT (target) version's state in one call (not chained)",
+          "passed": true,
+          "evidence": "notes.md mentions single-step/target/current semantics"
+        },
+        {
+          "text": "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
+          "passed": true,
+          "evidence": "schema.Schema{Version: ...} found"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill_minimal": {
+      "pass_rate": {
+        "mean": 0.828042328042328,
+        "stddev": 0.10866545017689992,
+        "min": 0.6666666666666666,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 241.25,
+        "stddev": 121.54730354886529,
+        "min": 72.2,
+        "max": 340.9
+      },
+      "tokens": {
+        "mean": 50599.833333333336,
+        "stddev": 19323.75602636989,
+        "min": 23559,
+        "max": 70031
+      }
+    },
+    "with_skill_bundled": {
+      "pass_rate": {
+        "mean": 0.9537037037037037,
+        "stddev": 0.07384222976806254,
+        "min": 0.8333333333333334,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 349.91666666666663,
+        "stddev": 255.58177882366078,
+        "min": 85.6,
+        "max": 780.8
+      },
+      "tokens": {
+        "mean": 49975.5,
+        "stddev": 19647.094143918584,
+        "min": 25434,
+        "max": 80043
+      }
+    },
+    "delta": {
+      "pass_rate": "-12.6pp",
+      "time_seconds": "-109s",
+      "tokens": "+624"
+    }
+  },
+  "notes": [
+    "Eval 6 (state-upgrade) shows the largest individual win for minimal: 65% faster, 20% fewer tokens, with -11pp pass rate.",
+    "Eval 1 (inventory) and eval 2 (data source) are inversions \u2014 minimal variant uses MORE tokens. Hypothesis: structure-heavy artefact tasks benefit from bundled examples.",
+    "Net aggregate: token use roughly flat; time saved ~30%; pass-rate dropped 12pp.",
+    "The minimal variant fails specific assertions: the 'cites blocks.md' assertion (which requires reading specific skill content) doesn't trigger as reliably; some structural-completeness assertions miss when the agent produces a different shape."
+  ]
+}
