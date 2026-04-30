@@ -35,7 +35,6 @@ grep -l 'terraform-plugin-sdk/v2' go.mod
 - **`terraform-plugin-go`-only providers**: a different, lower-level SDK. The framework's premise (a higher-level abstraction) doesn't apply.
 - **Intra-framework version bumps**: e.g., `v1.10` → `v1.13` of the framework itself. Use `go get -u` and the framework's own changelog.
 - **`terraform-plugin-mux` multi-release migrations**: out of scope for this skill; the user wants the single-release path.
-- **Non-Terraform IaC**: Pulumi, CDKTF, OpenTofu, Terragrunt — different tooling.
 - **Framework-only feature additions**: new `function`, `ephemeral`, `list`, `action` resources; nothing to migrate from.
 - **Cross-type or cross-provider state moves via `ResourceWithMoveState`**: a separate task that *can* overlap with migration but is documented separately. See `references/move-state.md` if the user is renaming or splitting a resource as part of the migration.
 
@@ -53,7 +52,7 @@ bash <skill-path>/scripts/audit_sdkv2.sh <provider-repo-path>
 
 The script drives [semgrep](https://semgrep.dev) with the rules at `scripts/audit_sdkv2.semgrep.yml` (AST-aware Go pattern matching) and emits a summary table per rule + a per-file complexity ranking + a "needs manual review" bucket. The bucket flags patterns where the decision is judgment-rich and a human/LLM should read the file directly before proposing edits — not patterns the script couldn't parse. Current judgment-required signals: `MaxItems: 1` block-vs-attribute, `StateUpgraders` (single-step composition), custom `Importer` (composite-ID parsing), `Timeouts`, `CustomizeDiff`, `StateFunc`, `DiffSuppressFunc`, nested `Elem &Resource`, cross-attribute constraints (`ConflictsWith`/etc.), legacy `MigrateState`.
 
-Populate the audit using `<skill-path>/assets/audit_template.md`.
+The audit script emits a fully populated report ready to commit; `<skill-path>/assets/audit_template.md` documents the expected shape if you need to inspect or hand-edit it.
 
 ### Pre-flight B — Plan
 
@@ -182,6 +181,8 @@ Before editing any resource the audit flagged for manual review, write a 3-line 
 
 Do not start editing the file until that summary exists. Skipping this step is the most common cause of missed-pattern migrations.
 
+<verification_gates>
+
 ## Verification gates
 
 After each migrated resource (and at the end of the migration), run:
@@ -190,15 +191,14 @@ After each migrated resource (and at the end of the migration), run:
 bash <skill-path>/scripts/verify_tests.sh <provider-repo-path> --migrated-files <space-separated-list-of-files>
 ```
 
-It runs layered checks so signal is recovered even when `TF_ACC` is unset:
+It runs six layered checks so signal is recovered even when `TF_ACC` is unset:
 
 1. `go build ./...`
 2. `go vet ./...`
-3. `TestProvider` — calls `provider.InternalValidate()`, catches a huge class of schema errors
-4. Non-`TestAcc*` unit tests
-5. (Optional) protocol-v6 smoke that boots the provider via `providerserver.NewProtocol6WithError` and asserts it serves
-6. (Optional, if creds available) `TF_ACC=1` for the resource's `TestAcc*` tests
-7. **Negative gate**: none of the files passed via `--migrated-files` may still import `github.com/hashicorp/terraform-plugin-sdk/v2`. This closes the "all-green-on-an-unmigrated-tree" loophole.
+3. `TestProvider` — runs the provider's own `^TestProvider$` test if present (the conventional place to call `provider.InternalValidate()`); skipped with a notice if no such test exists.
+4. Non-`TestAcc*` unit tests.
+5. **Negative gate**: none of the files passed via `--migrated-files` may still mention `github.com/hashicorp/terraform-plugin-sdk/v2` (matched as a substring, so comments and string literals also fail the gate). Closes the "all-green-on-an-unmigrated-tree" loophole.
+6. (Optional, with `--with-acc`, if creds available) `TF_ACC=1 go test -count=1 ./...`.
 
 If any gate fails, fix before moving on. Do not move past step 9 of the workflow until the resource's tests are green.
 
