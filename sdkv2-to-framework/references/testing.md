@@ -5,7 +5,7 @@
 - `ProviderFactories` → `ProtoV6ProviderFactories` (or `ProtoV5ProviderFactories` for v5).
 - `r.Test(t, resource.TestCase{...})` is unchanged in shape; the factories field is what differs.
 - TDD ordering matters here (workflow step 7): change the test first, run it red, then migrate the resource. Tests written *after* the migration inherit the migrator's blind spots.
-- `TestProvider` (calling `provider.InternalValidate()`) is your cheap, fast schema-validity check that catches a huge class of errors without `TF_ACC`.
+- `TestProvider` is your cheap, fast schema-validity check without `TF_ACC`. Pre-migration this is the SDKv2 `provider.InternalValidate()` call; post-migration there's no single framework equivalent — the closest is calling the provider factory and asserting it returns no error (the schema is exercised whenever a `ProviderServer` is constructed).
 
 ## The testing package
 
@@ -159,7 +159,7 @@ This is *not* equivalent to a full acceptance test, but it catches schema errors
 
 ## terraform-plugin-testing version
 
-Use a recent version (`v1.11+`) that supports both protocols. Pin in `go.mod`:
+`terraform-plugin-testing` has supported both protocols since v1.0.0. Pin a recent release for the newer assertions you'll likely use (`plancheck`, `statecheck`, identity-aware checks):
 
 ```
 require github.com/hashicorp/terraform-plugin-testing v1.14.0

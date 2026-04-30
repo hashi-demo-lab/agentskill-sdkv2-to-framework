@@ -114,8 +114,13 @@ Acceptance tests can pin a state file from the prior version:
 
 ```go
 resource.Test(t, resource.TestCase{
+    // ProtoV6ProviderFactories goes on the TestCase, NOT inside individual TestSteps.
+    // Steps without ExternalProviders use the TestCase-level factories.
+    ProtoV6ProviderFactories: protoV6ProviderFactories,
     Steps: []resource.TestStep{
         {
+            // Step 1: write V0 state using the published SDKv2 provider.
+            // ExternalProviders overrides the TestCase-level factories for this step.
             ExternalProviders: map[string]resource.ExternalProvider{
                 "myprov": {
                     VersionConstraint: "= 1.x.x", // your last SDKv2 release
@@ -125,12 +130,12 @@ resource.Test(t, resource.TestCase{
             Config: testAccConfigV0,
         },
         {
-            ProtoV6ProviderFactories: protoV6ProviderFactories,
-            Config:                   testAccConfigCurrent,
-            PlanOnly:                 true, // assert no diff after upgrade
+            // Step 2: migrated provider (TestCase-level factories), assert no plan diff.
+            Config:   testAccConfigCurrent,
+            PlanOnly: true,
         },
     },
 })
 ```
 
-The first step writes a V0 state with the published SDKv2 provider; the second step uses the migrated provider and asserts no plan diff. If there's a diff, the upgrader is incomplete.
+The first step writes a V0 state with the published SDKv2 provider; the second step uses the migrated provider (inherited from the TestCase-level `ProtoV6ProviderFactories`) and asserts no plan diff. If there's a diff, the upgrader is incomplete.

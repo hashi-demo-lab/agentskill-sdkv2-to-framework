@@ -57,8 +57,8 @@ From `terraform-plugin-framework-validators`. Module path: `github.com/hashicorp
 | `validation.IntBetween(min, max)` | `int64validator.Between(int64(min), int64(max))` |
 | `validation.IntAtLeast(min)` | `int64validator.AtLeast(int64(min))` |
 | `validation.IntInSlice(opts)` | `int64validator.OneOf(opts...)` |
-| `validation.IsCIDR` | `stringvalidator.RegexMatches(...)` or use a custom validator |
-| `validation.IsUUID` | `stringvalidator.RegexMatches(uuidRE, "must be a UUID")` or `stringvalidator.UTF8LengthBetween` |
+| `validation.IsCIDR` | `cidrtypes.IPv4Prefix` / `cidrtypes.IPv6Prefix` (custom types from `terraform-plugin-framework-nettypes`). Do **not** use regex — CIDR can't be regex-validated correctly. |
+| `validation.IsUUID` | `stringvalidator.RegexMatches(uuidRE, "must be a UUID")` (anchor the regex), or a custom validator that calls `uuid.Parse`. **Don't substitute a length check** — a 36-char string is not necessarily a valid UUID. |
 | `validation.IsRFC3339Time` | custom validator (or use a `customtype` with parse semantics — see `state-and-types.md`) |
 
 ## Cross-attribute validators

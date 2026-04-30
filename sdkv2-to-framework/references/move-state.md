@@ -63,6 +63,13 @@ func (r *widgetV2Resource) MoveState(ctx context.Context) []resource.StateMover 
                     return
                 }
 
+                // SourceState is *tfsdk.State and is nil if SourceSchema wasn't set
+                // or the framework couldn't deserialise the prior state with it.
+                // Always nil-check before calling Get — otherwise this panics.
+                if req.SourceState == nil {
+                    return
+                }
+
                 var prior widgetV1Model
                 resp.Diagnostics.Append(req.SourceState.Get(ctx, &prior)...)
                 if resp.Diagnostics.HasError() {
@@ -116,14 +123,29 @@ Order: Terraform applies `MoveState` first (changing the resource's address), th
 
 ## Identity moves
 
-If the source resource has an identity schema (and the destination has one too), use `req.SourceIdentity` and `resp.TargetIdentity`:
+If the source resource has an identity schema (and the destination has one too), the request and response surfaces are *asymmetric*:
+
+- `req.SourceIdentity` is `*tfprotov6.RawState` (raw, untyped — no `Get(ctx, &model)` method available, because the framework doesn't know the source identity's typed shape). To extract typed fields, call `req.SourceIdentity.Unmarshal(sourceIdentityType)` against the `tftypes.Type` describing the source identity. `req.SourceIdentitySchemaVersion int64` carries the source identity's schema version.
+- `resp.TargetIdentity` IS a typed `*tfsdk.ResourceIdentity` you can `Set` against directly.
 
 ```go
-var sourceIdent widgetV1IdentityModel
-resp.Diagnostics.Append(req.SourceIdentity.Get(ctx, &sourceIdent)...)
-// transform ...
+// Extract source identity from raw protobuf state.
+sourceIdentityType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{
+    "region": tftypes.String,
+    "id":     tftypes.String,
+}}
+sourceIdentVal, err := req.SourceIdentity.Unmarshal(sourceIdentityType)
+if err != nil {
+    resp.Diagnostics.AddError("decoding source identity failed", err.Error())
+    return
+}
+// Pull individual fields from sourceIdentVal (a tftypes.Value) using As(...).
+// Then transform into the current identity model and write it typed:
+currentIdent := widgetV2IdentityModel{ /* ... */ }
 resp.Diagnostics.Append(resp.TargetIdentity.Set(ctx, currentIdent)...)
 ```
+
+For most migrations, identity moves aren't needed — the source provider didn't have identity in the first place. Reach for this only when both the old and new resource have identity schemas.
 
 See `references/identity.md` for the identity primitives.
 

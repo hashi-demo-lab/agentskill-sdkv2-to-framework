@@ -4,7 +4,7 @@
 - Framework features arrived in distinct versions; if the provider must support a frozen Terraform CLI or a pinned framework dependency, you may have to skip newer features.
 - The newest features (resource identity, write-only attributes, `UseNonNullStateForUnknown`) all require **framework v1.14+** (some v1.15+, some v1.17+) AND **Terraform 1.11+ or 1.12+**.
 - Most migrations from SDKv2 land on framework v1.13+ comfortably; only "what's the minimum framework version we can pin" decisions need this table.
-- Rule of thumb for new migrations in 2026: pin `terraform-plugin-framework v1.17+` to get every documented feature stable, with Terraform 1.12+ as the practitioner-side floor.
+- Rule of thumb for new migrations in 2026: pin `terraform-plugin-framework v1.17+` to get the GA features, with Terraform 1.12+ as the practitioner-side floor. Note that **`WriteOnly` and `action.Action` are still technical preview as of v1.19** — pinning v1.17+ does not buy GA status for those two; check the framework's CHANGELOG before relying on them.
 - If you must support older Terraform (< 1.5), skip identity, skip `import {}` blocks, skip write-only — fall back to manual `ImportState` parsing of `req.ID` (see `import.md`).
 
 ## Feature → minimum versions
@@ -15,10 +15,9 @@
 | `DynamicAttribute` / `types.Dynamic` | v1.7.0 (March 2024) | any | rare; only for deliberate untyped passthrough |
 | `ResourceWithMoveState` (cross-type / cross-provider state moves) | v1.6.0 (Feb 2024) | 1.8+ (for `moved {}` blocks across types) | see `move-state.md` |
 | `ResourceWithIdentity` + `identityschema` package | v1.15.0 (May 2025) | 1.12+ (for `identity = {...}` inside `import {}`) | the `import {}` block itself shipped in 1.5 |
-| `ResourceWithUpgradeIdentity` | v1.15.0 | 1.12+ | rare; only when changing identity schema |
+| `ResourceWithUpgradeIdentity` | v1.15.0+ (interface present in source; specific introduction not changelogged — verify before pinning) | 1.12+ | rare; only when changing identity schema |
 | `ImportStatePassthroughWithIdentity` | v1.15.0 | 1.12+ | one (state, identity) pair per call |
-| `WriteOnly` attributes (technical preview) | v1.14.0 (Feb 2025) | 1.11+ | usable but pre-stable |
-| `WriteOnly` attributes (production) | v1.17.0 | 1.11+ | recommended floor for new write-only adoption |
+| `WriteOnly` attributes | v1.14.0+ (still **technical preview** through at least v1.19) | 1.11+ | feature is preview-only — no GA flip in the framework's CHANGELOG yet. Adopt only if you accept preview status. |
 | `UseNonNullStateForUnknown` (nested-attribute null fix) | v1.17.0 | any | use on Computed children inside nested attributes; see `plan-modifiers.md` |
 | `resp.Deferred` / `resource.Deferred` (cross-resource ordering) | v1.9.0 | 1.9+ | still experimental |
 | `function.Function` (provider-defined functions, GA) | v1.8.0 | 1.8+ | framework-only; out of scope for this skill |
