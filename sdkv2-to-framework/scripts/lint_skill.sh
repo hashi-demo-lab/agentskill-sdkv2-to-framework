@@ -37,4 +37,42 @@ if grep -riE --exclude-dir=evals --exclude='lint_skill.sh' "$PATTERN" . ; then
 fi
 
 echo "OK: skill content is provider-agnostic." >&2
-exit 0
+
+# -----------------------------------------------------------------------------
+# YAML frontmatter parse check.
+#
+# GitHub's strict YAML parser rejects unquoted scalars containing `: ` (colon
+# followed by space) because it treats them as nested mappings — the SKILL.md
+# description has historically been long-form prose, which collides with this
+# rule (e.g., "Does NOT cover: SDK v1 ..."). Validate the frontmatter parses
+# under PyYAML's safe_load before shipping.
+# -----------------------------------------------------------------------------
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "WARN: python3 not on PATH; skipping YAML frontmatter check." >&2
+    exit 0
+fi
+
+python3 - <<'PY' "$SKILL_ROOT/SKILL.md"
+import re, sys
+try:
+    import yaml
+except ImportError:
+    print("WARN: PyYAML not installed; skipping frontmatter check.", file=sys.stderr)
+    sys.exit(0)
+text = open(sys.argv[1]).read()
+m = re.match(r"^---\n(.*?)\n---", text, re.S)
+if not m:
+    print(f"FAIL: SKILL.md missing YAML frontmatter delimited by ---", file=sys.stderr)
+    sys.exit(1)
+try:
+    fm = yaml.safe_load(m.group(1))
+except yaml.YAMLError as e:
+    print(f"FAIL: SKILL.md YAML frontmatter doesn't parse: {e}", file=sys.stderr)
+    sys.exit(1)
+if not isinstance(fm, dict) or "name" not in fm or "description" not in fm:
+    print(f"FAIL: SKILL.md frontmatter missing required keys (name, description). Got: {list(fm) if isinstance(fm, dict) else type(fm).__name__}", file=sys.stderr)
+    sys.exit(1)
+print(f"OK: SKILL.md frontmatter parses (name={fm['name']!r}, description={len(fm['description'])} chars).", file=sys.stderr)
+PY
+
+exit $?
