@@ -86,6 +86,8 @@ For per-step "do not skip" notes, read `references/workflow.md`.
 
 ## Per-element conversion (read on demand)
 
+**Reference layout for this variant**: each `references/*.md` file is a thin stub — a 5-bullet quick summary plus a "Fetch for depth" section pointing at HashiCorp docs and framework source. The summary captures the *decisions* you need to make; the depth lives external. **Fetch the linked URLs when you need worked examples, full conversion tables, or authoritative type signatures.** Default: read the relevant `migrating/*` page from `developer.hashicorp.com/terraform/plugin/framework/...`, fall back to framework source on `github.com/hashicorp/terraform-plugin-framework/...`.
+
 Each reference file opens with a 5-bullet summary so you can pull a quick lookup without reading the whole file. Open only what you need:
 
 | You're working on… | Read |
