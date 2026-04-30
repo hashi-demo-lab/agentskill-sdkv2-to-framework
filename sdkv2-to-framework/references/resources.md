@@ -132,45 +132,17 @@ func (r *thingResource) ImportState(ctx context.Context, req resource.ImportStat
 }
 ```
 
-## CRUD method signature changes
+## CRUD method signatures, state access, diagnostics
 
-| SDKv2 | Framework |
-|---|---|
-| `CreateContext func(ctx, d *schema.ResourceData, m interface{}) diag.Diagnostics` | `Create(ctx, req resource.CreateRequest, resp *resource.CreateResponse)` |
-| `ReadContext func(ctx, d, m) diag.Diagnostics` | `Read(ctx, req resource.ReadRequest, resp *resource.ReadResponse)` |
-| `UpdateContext func(ctx, d, m) diag.Diagnostics` | `Update(ctx, req resource.UpdateRequest, resp *resource.UpdateResponse)` |
-| `DeleteContext func(ctx, d, m) diag.Diagnostics` | `Delete(ctx, req resource.DeleteRequest, resp *resource.DeleteResponse)` |
+These three are demonstrated by the worked example above. Three things to internalise:
 
-Returns become diagnostics on the response object instead of a return value.
-
-## State / plan / config access
-
-| SDKv2 | Framework |
-|---|---|
-| `d.Get("name").(string)` | `var m model; req.Plan.Get(ctx, &m); m.Name.ValueString()` |
-| `d.Set("name", "foo")` | `m.Name = types.StringValue("foo"); resp.State.Set(ctx, m)` |
-| `d.Id()` | `state.ID.ValueString()` (you keep an `ID` field on the model) |
-| `d.SetId("...")` | `m.ID = types.StringValue("...")` then `resp.State.Set(ctx, m)` |
-| `d.SetId("")` (drift cleanup) | `resp.State.RemoveResource(ctx)` |
-| `d.GetChange("name")` | compare `req.State` and `req.Plan` (Update only) |
-| `d.HasChange("name")` | `!plan.Name.Equal(state.Name)` |
-| `d.IsNewResource()` | only relevant in Create — check whether `req.State.Raw.IsNull()` |
+- **Signatures**: `CreateContext`/`ReadContext`/`UpdateContext`/`DeleteContext` lose the `Context` suffix and gain typed `(ctx, req, resp)` parameters. Returns become diagnostics on `resp.Diagnostics`, not a return value.
+- **State access**: every `d.Get`/`d.Set`/`d.Id`/`d.HasChange` operation translates to typed access on a model struct — the canonical conversion table is in `state-and-types.md`. Read that file before writing CRUD bodies.
+- **Diagnostics**: replace `diag.FromErr(err)` / `diag.Errorf(...)` with `resp.Diagnostics.AddError("op", err.Error())` (or `AddWarning` / `AddAttributeError`). After any call that may add diagnostics, check `resp.Diagnostics.HasError()` and return early.
 
 ## Read drift handling
 
 In SDKv2 you call `d.SetId("")` when the resource is gone to trigger recreation. In the framework, call `resp.State.RemoveResource(ctx)`. Doing nothing is wrong — Terraform will think the resource still exists.
-
-## Diagnostics
-
-Replace every `diag.FromErr(err)` and `diag.Errorf(...)` with calls on `resp.Diagnostics`:
-
-```go
-resp.Diagnostics.AddError("operation failed", err.Error())
-resp.Diagnostics.AddWarning("deprecated field used", "the X field will be removed")
-resp.Diagnostics.AddAttributeError(path.Root("name"), "name too long", "max 64 characters")
-```
-
-After calls that may add diagnostics, check `resp.Diagnostics.HasError()` and return early.
 
 ## Optional sub-interfaces
 

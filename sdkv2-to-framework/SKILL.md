@@ -59,6 +59,18 @@ Populate the audit using `<skill-path>/assets/audit_template.md`.
 
 Generate a checklist from `<skill-path>/assets/checklist_template.md`, populated from the audit. Confirm scope with the user (whole provider? specific resources?) before editing anything.
 
+<example name="inventory_artefact_shape">
+**For pre-flight outputs (audit + checklist), produce exactly these artefacts and nothing extra.** Do not append your own analysis sections, additional grep passes, or service-area breakdowns unless the user asks — the audit script and checklist template are sufficient and additional context is what blows up token cost on this task.
+
+**Output 1 — `audit_report.md`**: the verbatim output of `audit_sdkv2.sh`. Copy it directly. No reformatting, no extra sections. Target ≤ 25 KB; if larger, the audit script is over-firing and needs a `--max-files N` cap, not a hand-summarisation pass.
+
+**Output 2 — `migration_checklist.md`**: populate `assets/checklist_template.md`. Fill in the `{{...}}` placeholders. The "Per-resource checklist" section repeats once per resource the user wants to migrate (ask if scope is "whole provider" — don't assume). Target ≤ 30 KB for ~50 resources.
+
+**Output 3 — `summary.md`** (optional): one paragraph ≤ 1 KB. Headline counts (resources, data sources, files), highest-risk file by complexity score, the one StateUpgrader if any, recommended migration order. Skip the verbose service-area tables.
+
+If you find yourself producing more than these three files, or any single one above the size targets, stop and ask the user whether they want the extra detail before continuing.
+</example>
+
 ### The 12 single-release-cycle steps (verbatim from HashiCorp)
 
 1. Ensure the SDKv2 version of your provider has sufficient test coverage and that all tests pass.
@@ -108,6 +120,7 @@ Each reference file opens with a 5-bullet summary so you can pull a quick lookup
 | Protocol v5 vs v6 selection, `providerserver.NewProtocol6WithError`, `main.go` swap | `references/protocol-versions.md` |
 | Acceptance tests (`ProtoV6ProviderFactories`, `TestProvider`/`InternalValidate`, `ImportStateVerify`, `PlanOnly`, `ConfigStateChecks`, `r.Test` vs `r.UnitTest`, TDD ordering) | `references/testing.md` |
 | Removed/renamed APIs you might emit by mistake | `references/deprecations.md` |
+| Framework version-floor for any feature (Int32, identity, WriteOnly, UseNonNullStateForUnknown, etc.) | `references/compatibility.md` |
 
 ### Worked example — the load-bearing block-vs-attribute decision
 
