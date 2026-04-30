@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "src has sdkv2 import: False; test: False"
+    },
+    {
+      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+      "passed": true,
+      "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": false,
+      "evidence": "no compile-success claim in notes.md (head: # Migration notes \u2014 openstack_objectstorage_container_v1\n\n## What was migrated\n\n| Source file | Output file |\n|---|---|\n| `resource_openstack_objectstorage_container_v1.go` | `migrated/resource_openst)"
+    },
+    {
+      "text": "TestProvider passes (provider boots, schema is internally valid)",
+      "passed": true,
+      "evidence": "notes.md states provider/internal validation passes"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "passed": true,
+      "evidence": "original attrs: 15; migrated map: 16; full_mention: True; missing: []"
+    },
+    {
+      "text": "The migrated resource implements resource.ResourceWithUpgradeState (UpgradeState method returns map[int64]resource.StateUpgrader)",
+      "passed": true,
+      "evidence": "UpgradeState method found"
+    },
+    {
+      "text": "Each StateUpgrader entry has a PriorSchema field set to the schema shape it is upgrading from",
+      "passed": true,
+      "evidence": "PriorSchema reference found"
+    },
+    {
+      "text": "The upgrader function for prior version N produces the CURRENT (target) version's state in one call (not chained)",
+      "passed": true,
+      "evidence": "notes.md mentions single-step/target/current semantics"
+    },
+    {
+      "text": "schema.Schema.Version on the migrated resource matches the SDKv2 SchemaVersion value",
+      "passed": true,
+      "evidence": "schema.Schema{Version: ...} found"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 1,
+    "total": 9,
+    "pass_rate": 0.8888888888888888
+  }
+}

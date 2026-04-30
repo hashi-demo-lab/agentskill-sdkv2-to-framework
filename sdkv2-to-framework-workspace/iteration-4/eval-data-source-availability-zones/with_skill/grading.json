@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "src has sdkv2 import: False; test: False"
+    },
+    {
+      "text": "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
+      "passed": true,
+      "evidence": "methods found: ['Metadata', 'Schema', 'Read']"
+    },
+    {
+      "text": "The migrated file uses the datasource/schema package, not the resource/schema package",
+      "passed": true,
+      "evidence": "datasource/schema: True; resource/schema: False"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": false,
+      "evidence": "no compile-success claim in notes.md (head: # Migration Notes: openstack_blockstorage_availability_zones_v3\n\n## Compile check\n\nThe openstack repo was copied to `/tmp/openstack-migration` for compile verification (constraint: do not modify the o)"
+    },
+    {
+      "text": "TestProvider passes (provider boots, schema is internally valid)",
+      "passed": false,
+      "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "passed": true,
+      "evidence": "original attrs: 3; migrated map: 4; full_mention: True; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 2,
+    "total": 6,
+    "pass_rate": 0.6666666666666666
+  }
+}
