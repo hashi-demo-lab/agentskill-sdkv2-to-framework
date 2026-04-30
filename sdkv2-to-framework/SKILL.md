@@ -86,7 +86,9 @@ For per-step "do not skip" notes, read `references/workflow.md`.
 
 ## Per-element conversion (read on demand)
 
-Each reference file opens with a 5-bullet summary so you can pull a quick lookup without reading the whole file. Open only what you need:
+**Reference layout for this variant (hybrid)**: each `references/*.md` file opens with a 5-bullet quick summary. Five high-judgment refs (`workflow.md`, `blocks.md`, `state-upgrade.md`, `identity.md`, `plan-modifiers.md`) carry their full bundled content — read these in full when you touch the corresponding decision. The remaining 14 refs are URL-stubs: a 5-bullet summary plus a "Fetch for depth" section pointing at HashiCorp framework docs and source. **Fetch the linked URLs only when the 5-bullet summary doesn't tell you what you need.** Default for the stubs: read the relevant `migrating/*` page from `developer.hashicorp.com/terraform/plugin/framework/...`, fall back to framework source on `github.com/hashicorp/terraform-plugin-framework/...`.
+
+Open only what you need:
 
 | You're working on… | Read |
 |---|---|
