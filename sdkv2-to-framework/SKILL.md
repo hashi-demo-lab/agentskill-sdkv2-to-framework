@@ -212,7 +212,7 @@ If any gate fails, fix before moving on. Do not move past step 9 of the workflow
 - **`Set` no longer needs a hash function.** If the SDKv2 schema used `Set: schema.HashString` or a custom hasher, drop it; framework `SetAttribute` / `SetNestedAttribute` handle uniqueness internally.
 - **`d.Get("foo.0.bar")` string-path access is gone.** Replace with typed `Plan.Get`/`State.Get` calls into a typed model struct. The compiler now catches typos.
 - **State upgraders are single-step, not chained.** SDKv2 chained upgraders V0→V1→V2; framework upgraders take a `PriorSchema` and produce the *target* version's state in one call per upgrader function. Read `references/state-upgrade.md` before touching this.
-- **`Default` is not a plan modifier in the framework.** It's the `defaults` package (`stringdefault.StaticString("foo")`, `int64default.StaticInt64(42)`, etc.). A common mistake is wiring `Default` into `PlanModifiers` and getting type errors.
+- **`Default` is not a plan modifier in the framework.** It's the `defaults` package (`stringdefault.StaticString("foo")`, `int64default.StaticInt64(42)`, etc.). A common mistake is wiring `Default` into `PlanModifiers` and getting *compile-time* type errors — `Default` is typed `defaults.String` (etc.), `PlanModifiers` is `[]planmodifier.String`; the compiler catches the mix.
 - **`ForceNew: true` does NOT translate to `RequiresReplace: true`.** It becomes a plan modifier: `PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}`.
 - **Don't change user-facing schema names or attribute IDs.** That's a state-breaking change — practitioners will see drift or have to re-import. Migration must be pure refactor from the user's POV.
 
