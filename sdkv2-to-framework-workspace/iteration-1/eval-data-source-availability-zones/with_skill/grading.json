@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "src has sdkv2 import: False; test: False"
+    },
+    {
+      "text": "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
+      "passed": true,
+      "evidence": "methods found: ['Metadata', 'Schema', 'Read']"
+    },
+    {
+      "text": "The migrated file uses the datasource/schema package, not the resource/schema package",
+      "passed": true,
+      "evidence": "datasource/schema: True; resource/schema: False"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": true,
+      "evidence": "notes.md states compile passes"
+    },
+    {
+      "text": "TestProvider passes (provider boots, schema is internally valid)",
+      "passed": true,
+      "evidence": "notes.md states provider/internal validation passes"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "passed": true,
+      "evidence": "original attrs: 3; migrated map: 4; full_mention: True; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}

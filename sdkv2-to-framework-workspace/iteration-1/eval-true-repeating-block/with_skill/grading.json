@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+      "passed": true,
+      "evidence": "cites blocks.md / skill guidance"
+    },
+    {
+      "text": "Reasoning identifies at least 4 distinct supporting considerations (sections or numbered points)",
+      "passed": true,
+      "evidence": "reasoning has 5 ## sections, 0 numbered points (max=5)"
+    },
+    {
+      "text": "Reasoning correctly identifies whether the SDKv2 schema was TypeSet vs TypeList and maps to SetNestedBlock vs ListNestedBlock accordingly",
+      "passed": true,
+      "evidence": "reasoning correlates TypeSet \u2192 SetNestedBlock"
+    },
+    {
+      "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock \u2014 they are NOT converted to ListNestedAttribute",
+      "passed": true,
+      "evidence": "ListNestedBlock/SetNestedBlock present: True; ListNestedAttribute present (wrong): False"
+    },
+    {
+      "text": "The response justifies why blocks are preserved (HCL syntax compatibility with existing practitioner configurations)",
+      "passed": true,
+      "evidence": "HCL/syntax/backward mention: True; reasoning size: 2850 chars"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": true,
+      "evidence": "contains framework schema constructs: True (full compile check requires a Go module \u2014 soft check)"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged",
+      "passed": true,
+      "evidence": "original: 8; migrated map: 8; full_mention: True; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

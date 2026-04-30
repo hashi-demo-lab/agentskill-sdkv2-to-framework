@@ -1,0 +1,23 @@
+[
+  {"query": "We've been on `helper/schema` for years and the docs say we should look at the new framework. Got a free week to start the move on a smaller resource. Where do I begin?", "should_trigger": true},
+  {"query": "boss wants us to drop SDKv2 by Q3. Provider has ~40 resources. Realistic single-release plan?", "should_trigger": true},
+  {"query": "this `*schema.Resource` thing is becoming hard to reason about — we want to use `terraform-plugin-framework` instead. Got a small one to convert first: `resource_acme_widget.go`.", "should_trigger": true},
+  {"query": "I'm looking at a SDKv2 provider that has an `Importer.StateContext` parsing `region/id` format. How does that translate to the framework?", "should_trigger": true},
+  {"query": "rewrite `data_source_acme_account.go` to use the new framework, keep schema names the same", "should_trigger": true},
+  {"query": "Provider has `Sensitive: true` on a token attr that I think should be write-only now. Migrating off SDKv2 anyway — what's the right pattern?", "should_trigger": true},
+  {"query": "how do StateUpgraders work in `terraform-plugin-framework` vs `terraform-plugin-sdk/v2`? mine chains v0→v1→v2 today", "should_trigger": true},
+  {"query": "main.go uses `plugin.Serve` — what's the framework equivalent? Want to bump us to protocol 6 while we're at it.", "should_trigger": true},
+  {"query": "we have `MaxItems: 1` blocks in `network_acl` resource — should those become `SingleNestedAttribute` or stay as `ListNestedBlock` when we move to framework?", "should_trigger": true},
+  {"query": "anyone got an audit script for SDKv2 providers to figure out migration scope? We have ~60 resources scattered across 8 services.", "should_trigger": true},
+
+  {"query": "porting our infra from CDKTF to Pulumi — heard it's the hot thing now", "should_trigger": false},
+  {"query": "need to bump `github.com/hashicorp/terraform-plugin-go` from 0.20.0 to 0.22.0 in our low-level provider. Any breaking changes I should know?", "should_trigger": false},
+  {"query": "migrate our Terragrunt modules over to OpenTofu — keeping the same provider configs", "should_trigger": false},
+  {"query": "update `terraform-plugin-framework` from v1.10 to v1.14 in `go.mod`. Anything in the changelog that affects our resources?", "should_trigger": false},
+  {"query": "convert this Pulumi provider (`pulumi-acme-cloud`) to Terraform. Same APIs, different framework.", "should_trigger": false},
+  {"query": "we're moving our internal Go SDK (`acmecorp/sdk/v2`) to v3. Have you seen breaking changes in the `client.New()` constructor?", "should_trigger": false},
+  {"query": "in the test files, switching from `helper/schema` constructs to `helper/resource` test helpers. Got a few that fail to compile.", "should_trigger": false},
+  {"query": "convert from CDK (TypeScript) to Terraform HCL — we want to drop CDK entirely", "should_trigger": false},
+  {"query": "upgrade the Terraform CLI version we use in CI from 1.5 to 1.8 — any module compatibility issues?", "should_trigger": false},
+  {"query": "convert this AWS CloudFormation template (`stack.yaml`) into Terraform HCL", "should_trigger": false}
+]
