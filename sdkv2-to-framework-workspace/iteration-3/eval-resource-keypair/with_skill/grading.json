@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "src has sdkv2 import: False; test: False"
+    },
+    {
+      "text": "The migrated file implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete methods are present)",
+      "passed": true,
+      "evidence": "methods found: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "Every audited ForceNew attribute now uses RequiresReplace plan modifier",
+      "passed": true,
+      "evidence": "original ForceNew count: 5; migrated RequiresReplace count: 5"
+    },
+    {
+      "text": "go build ./... passes against <clone-path>",
+      "passed": false,
+      "evidence": "no compile-success claim in notes.md (head: # Migration notes \u2014 openstack_compute_keypair_v2\n\n## Pre-flight decisions\n\n**Block decision**: No `MaxItems:1` nested `Elem` structures in this resource. All attributes are scalar or map primitives. N)"
+    },
+    {
+      "text": "TestProvider passes (provider boots, schema is internally valid)",
+      "passed": false,
+      "evidence": "no TestProvider/InternalValidate claim \u2014 soft check"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "passed": true,
+      "evidence": "original attrs: 7; migrated map: 8; full_mention: True; missing: []"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 2,
+    "total": 6,
+    "pass_rate": 0.6666666666666666
+  }
+}
