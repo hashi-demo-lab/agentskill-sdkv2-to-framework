@@ -413,7 +413,11 @@ def check_regex(ctx: Ctx, args: dict) -> tuple[bool, str]:
     """Generic regex search.
 
     args:
-      file (str)
+      file (str): single file path (relative to out_dir), OR
+      files (list[str]): list of file paths — pattern matches if ANY file contains it
+        (for expect=present), or NONE contain it (for expect=absent). Useful when
+        the migrated artefact is split across multiple Go files (e.g. resource.go +
+        schema_resource.go in providers that follow that convention).
       pattern (str): Python regex
       expect (str): "present" or "absent" (default "present")
       flags (list[str]): subset of ['s','i','m']
@@ -422,23 +426,52 @@ def check_regex(ctx: Ctx, args: dict) -> tuple[bool, str]:
         "no match" (so expect=absent passes); if False (default), missing file
         always fails — refusal evals should use no_migrated_dir instead.
     """
-    src = ctx.src(args["file"])
-    if not src:
+    files = args.get("files") or [args.get("file")]
+    if not files or files == [None]:
+        return False, "regex check missing 'file' or 'files' arg"
+
+    sources = []
+    missing = []
+    for f in files:
+        s = ctx.src(f)
+        if s:
+            sources.append((f, s))
+        else:
+            missing.append(f)
+
+    if not sources:
         if args.get("allow_missing", False):
-            return args.get("expect", "present") == "absent", f"file not found (allowed): {args['file']}"
-        return False, f"file not found: {args['file']}"
-    if args.get("ignore_comments"):
-        src = strip_go_comments(src)
+            return args.get("expect", "present") == "absent", f"file(s) not found (allowed): {missing}"
+        return False, f"file(s) not found: {missing}"
+
     flag_map = {"s": re.S, "i": re.I, "m": re.M}
     flags = 0
     for f in args.get("flags", []):
         flags |= flag_map.get(f, 0)
-    found = re.search(args["pattern"], src, flags)
+
     expect = args.get("expect", "present")
+    matched_in = None
+    for fname, src in sources:
+        if args.get("ignore_comments"):
+            src = strip_go_comments(src)
+        m = re.search(args["pattern"], src, flags)
+        if m:
+            matched_in = (fname, m)
+            break
+
     if expect == "present":
-        return bool(found), (f"matched: {found.group(0)[:120]}" if found else "no match")
+        if matched_in:
+            fname, m = matched_in
+            evidence = f"matched: {m.group(0)[:120]}"
+            if len(sources) > 1:
+                evidence = f"matched in {fname}: {m.group(0)[:120]}"
+            return True, evidence
+        return False, f"no match in {[f for f,_ in sources]}"
     elif expect == "absent":
-        return not found, ("absent" if not found else f"unexpectedly matched: {found.group(0)[:120]}")
+        if matched_in:
+            fname, m = matched_in
+            return False, f"unexpectedly matched in {fname}: {m.group(0)[:120]}"
+        return True, "absent"
     return False, f"unknown expect={expect!r}"
 
 

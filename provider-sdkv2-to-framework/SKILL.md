@@ -5,7 +5,7 @@ description: 'Use only when the source SDK is `terraform-plugin-sdk/v2`. Does NO
 
 # SDKv2 → Plugin Framework migration
 
-Migrates a Terraform provider from `github.com/hashicorp/terraform-plugin-sdk/v2` to `github.com/hashicorp/terraform-plugin-framework`, following [HashiCorp's single-release-cycle workflow](https://developer.hashicorp.com/terraform/plugin/framework/migrating/workflow#migrate-in-a-single-release-cycle).
+Follows [HashiCorp's single-release-cycle workflow](https://developer.hashicorp.com/terraform/plugin/framework/migrating/workflow#migrate-in-a-single-release-cycle).
 
 ## When this skill applies
 
@@ -80,9 +80,7 @@ Run the bundled audit script to inventory the provider:
 bash <skill-path>/scripts/audit_sdkv2.sh <provider-repo-path>
 ```
 
-The script drives [semgrep](https://semgrep.dev) with the rules at `<skill-path>/scripts/audit_sdkv2.semgrep.yml` (AST-aware Go pattern matching) and emits a summary table per rule + a per-file complexity ranking + a "needs manual review" bucket. The bucket flags patterns where the decision is judgment-rich and a human/LLM should read the file directly before proposing edits — not patterns the script couldn't parse. Current judgment-required signals: `MaxItems: 1` block-vs-attribute, `StateUpgraders` (single-step composition), custom `Importer` (composite-ID parsing), `Timeouts`, `CustomizeDiff`, `StateFunc`, `DiffSuppressFunc`, nested `Elem &Resource`, cross-attribute constraints (`ConflictsWith`/etc.), legacy `MigrateState`.
-
-The audit script emits a fully populated report ready to commit; `<skill-path>/assets/audit_template.md` documents the expected shape if you need to inspect or hand-edit it.
+The script drives [semgrep](https://semgrep.dev) with the rules at `<skill-path>/scripts/audit_sdkv2.semgrep.yml` (AST-aware Go pattern matching). Output: per-rule summary table, per-file complexity ranking, and a "needs manual review" bucket flagging judgment-rich patterns (MaxItems:1, StateUpgraders, custom Importer, Timeouts, CustomizeDiff, StateFunc, DiffSuppressFunc, nested Elem, cross-attribute constraints) — read those files directly before proposing edits. Report shape is documented in `<skill-path>/assets/audit_template.md`.
 
 </workflow_step>
 
@@ -93,15 +91,10 @@ The audit script emits a fully populated report ready to commit; `<skill-path>/a
 Generate a checklist from `<skill-path>/assets/checklist_template.md`, populated from the audit. Confirm scope with the user (whole provider? specific resources?) before editing anything.
 
 <example name="inventory_artefact_shape">
-**Pre-flight outputs — produce exactly these and nothing extra.**
-
-| Output | Source | Size budget |
-|---|---|---|
-| `audit_report.md` | verbatim output of `audit_sdkv2.sh` (no reformatting) | ≤ 25 KB |
-| `migration_checklist.md` | populated `<skill-path>/assets/checklist_template.md`, one per-resource section per resource in scope (ask if scope is "whole provider" — don't assume) | ≤ 30 KB for ~50 resources |
-| `summary.md` (optional) | one paragraph: counts, highest-risk file, the one StateUpgrader if any, recommended order | ≤ 1 KB |
-
-If a file blows its budget, the audit is over-firing — cap with `--max-files N`, do not hand-summarise. Do not append your own analysis sections, additional grep passes, or service-area breakdowns. If you find yourself producing more than these three files, stop and ask.
+Produce exactly these files, nothing extra (over-summarising blows token cost):
+- `audit_report.md` — verbatim output of `audit_sdkv2.sh`, ≤25 KB. If larger, the audit is over-firing — cap with `--max-files N`, don't hand-trim.
+- `migration_checklist.md` — populated `<skill-path>/assets/checklist_template.md`, one per-resource section per resource in scope (ask user if scope is "whole provider"). ≤30 KB for ~50 resources.
+- `summary.md` (optional) — one paragraph: counts, highest-risk file, state upgraders if any, recommended order. ≤1 KB.
 </example>
 
 </workflow_step>
@@ -128,21 +121,7 @@ Do not start editing the file until that summary exists. Skipping this is the mo
 4. Update the provider definition to use the framework.
 5. Update the provider schema to use the framework.
 6. Update each of the provider's resources, data sources, and other Terraform features to use the framework.
-7. **Update related tests to use the framework, and ensure that the tests fail.** This is the TDD gate. Write/update tests *first*, run them red, *then* migrate the implementation. Red-then-green proves the test actually exercises the change — a test written *after* migration inherits the migrator's blind spots.
-
-   <workflow_step number="7" gate="TDD">
-   **Concrete procedure** (do not skip any sub-step):
-   1. Edit the test file: switch `ProviderFactories` → `ProtoV6ProviderFactories`, swap any SDKv2 helpers (see `references/testing.md`). **If no test exists for the resource, write a minimal one before proceeding** — never skip the gate.
-   2. Run: `go test -run '^TestAcc<ResourceName>_basic$' ./... 2>&1 | tail -30` (or the unit-test name if no acceptance tests).
-   3. **Quote the failing output verbatim** in the per-resource checklist row. Acceptable failure shapes:
-      - Compile error citing an SDKv2 type that no longer exists (e.g. `undefined: schema.Provider`).
-      - `protocol version mismatch` from the test framework.
-      - `schema for resource X not found` (runtime — the test references the resource but the provider hasn't registered it under the framework yet).
-      - Schema-shape assertion mismatch (e.g. `expected attribute "foo" to be Computed, got Required`).
-
-      Unacceptable: the test passed unchanged. If it does, the test does not exercise the migration — rewrite it.
-   4. Only after step 3 is satisfied, proceed to step 8.
-   </workflow_step>
+7. **Update related tests to use the framework, and ensure that the tests fail.** TDD gate: write/update tests *first*, run them red, *then* migrate. Red-then-green proves the test actually exercises the change. Quote the failing output verbatim in the checklist. If no test exists, write a minimal one before proceeding — never skip the gate. See `references/workflow.md` for the 4-step procedure and acceptable/unacceptable failure shapes.
 8. Migrate the resource or data source.
 9. Verify that related tests now pass.
 10. Remove any remaining references to SDKv2 libraries.
@@ -187,34 +166,9 @@ For each `TypeList`/`TypeSet` of `&schema.Resource{...}` with `MaxItems: 1`, ans
 
 The reason the order matters: switching block→attribute is *practitioner-visible HCL*. Answer "does breaking the syntax matter here?" before "what does the framework prefer?". Full decision tree, code samples for both outputs, and `SingleNestedBlock` guidance: `references/blocks.md`.
 
-<example name="state_upgrader_collapse">
+### State upgrader rule (the chain trap)
 
-### Worked example — collapsing chained state upgraders
-
-SDKv2 chained upgraders V0→V1→V2. Framework upgraders are **single-step**: each map entry takes a `PriorSchema` and produces the *current* schema's state directly. There is no chain.
-
-**SDKv2 (chained)**:
-```go
-SchemaVersion: 2,
-StateUpgraders: []schema.StateUpgrader{
-    {Version: 0, Type: resourceThingV0().CoreConfigSchema().ImpliedType(), Upgrade: upgradeV0ToV1},
-    {Version: 1, Type: resourceThingV1().CoreConfigSchema().ImpliedType(), Upgrade: upgradeV1ToV2},
-}
-```
-
-**Framework (each entry produces current state)**:
-```go
-func (r *thingResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-    return map[int64]resource.StateUpgrader{
-        0: {PriorSchema: priorSchemaV0(), StateUpgrader: upgradeFromV0}, // composes V0→V1→current
-        1: {PriorSchema: priorSchemaV1(), StateUpgrader: upgradeFromV1}, // V1→current only
-    }
-}
-```
-
-The V0 entry must produce *current* state, not V1 state — compose the V0→V1 and V1→current transformations inside `upgradeFromV0`'s body. Don't call one upgrader from another. Full pattern (typed prior models, `tfsdk:` tag matching the prior schema, closing over `r.client` when API calls are needed, acceptance-test recipe with `ExternalProviders`): `references/state-upgrade.md`.
-
-</example>
+SDKv2 chained upgraders (V0→V1→V2). Framework upgraders are **single-step** — each map entry keyed at a prior version produces the *current* schema's state directly in one call. Compose chains inline inside the V0 upgrader's body; don't call one upgrader from another. Full pattern with typed prior models, code samples, `tfsdk:` tag matching, and `ExternalProviders` test recipe: `references/state-upgrade.md`.
 
 <verification_gates>
 

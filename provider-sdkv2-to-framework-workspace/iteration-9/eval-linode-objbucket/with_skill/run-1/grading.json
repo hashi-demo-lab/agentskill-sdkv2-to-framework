@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+      "passed": true,
+      "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+      "passed": true,
+      "evidence": "ImportState method present"
+    },
+    {
+      "text": "MaxItems:1 blocks expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+      "passed": true,
+      "evidence": "matched: SingleNestedBlock"
+    },
+    {
+      "text": "Default field uses the framework's per-type *default package",
+      "passed": true,
+      "evidence": "matched: Default:     stringdefault."
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}

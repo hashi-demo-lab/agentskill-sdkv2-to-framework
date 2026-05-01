@@ -75,6 +75,19 @@ This is the bulk of the work. Drive it with the audit-generated checklist (one b
 
 The reason: a green test on a migrated resource means very little if the test was written *after* the migration. Tests written after inherit the migrator's blind spots. Red-then-green proves the test actually exercises the change.
 
+#### Concrete procedure (do not skip any sub-step)
+
+1. Edit the test file: switch `ProviderFactories` → `ProtoV6ProviderFactories`, swap any SDKv2 helpers (see `testing.md`). **If no test exists for the resource, write a minimal one before proceeding** — never skip the gate.
+2. Run: `go test -run '^TestAcc<ResourceName>_basic$' ./... 2>&1 | tail -30` (or the unit-test name if no acceptance tests).
+3. **Quote the failing output verbatim** in the per-resource checklist row. Acceptable failure shapes:
+   - Compile error citing an SDKv2 type that no longer exists (e.g. `undefined: schema.Provider`).
+   - `protocol version mismatch` from the test framework.
+   - `schema for resource X not found` (runtime — the test references the resource but the provider hasn't registered it under the framework yet).
+   - Schema-shape assertion mismatch (e.g. `expected attribute "foo" to be Computed, got Required`).
+
+   Unacceptable: the test passed unchanged. If it does, the test does not exercise the migration — rewrite it.
+4. Only after step 3 is satisfied, proceed to step 8.
+
 ### 8. Migrate the resource or data source.
 Now do the actual conversion. Use the references on demand. Read the file flagged "needs manual review" by the audit before starting — there's nearly always a `MaxItems: 1` block, a state upgrader, or a custom importer that needs special handling.
 

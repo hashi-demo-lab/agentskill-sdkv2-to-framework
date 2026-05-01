@@ -151,24 +151,7 @@ For the legacy fallback, you still implement classic `ImportState` parsing (see 
 
 ## Identity schema versioning
 
-If you ever change the identity schema (rare — adding a region to a previously global resource, splitting a single-segment ID into two), implement `ResourceWithUpgradeIdentity`:
-
-```go
-var _ resource.ResourceWithUpgradeIdentity = &thingResource{}
-
-func (r *thingResource) UpgradeIdentity(ctx context.Context) map[int64]resource.IdentityUpgrader {
-    return map[int64]resource.IdentityUpgrader{
-        0: {
-            PriorSchema: priorIdentitySchemaV0(),
-            IdentityUpgrader: func(ctx context.Context, req resource.UpgradeIdentityRequest, resp *resource.UpgradeIdentityResponse) {
-                // Same single-step semantics as state upgraders — produce the current identity in one call.
-            },
-        },
-    }
-}
-```
-
-The semantics mirror `ResourceWithUpgradeState` (single-step, see `references/state-upgrade.md`).
+Rare. If the identity schema itself changes (region added to a previously global resource, single-segment split into two), implement `ResourceWithUpgradeIdentity` — semantics mirror `ResourceWithUpgradeState` (single-step, see `references/state-upgrade.md`). Map keyed by prior version; each entry has a `PriorSchema` and an `IdentityUpgrader` that produces the *current* identity directly. Don't chain.
 
 ## When to skip identity
 

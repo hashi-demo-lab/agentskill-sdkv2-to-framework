@@ -756,9 +756,9 @@
       "checks": [
         {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
         {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
-        {"type": "regex", "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)", "file": "migrated/resource.go", "pattern": "Default:\\s*(string|int64|int32|bool|float64|float32|list|set|map|object|number|dynamic)default\\."},
-        {"type": "regex", "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)", "file": "migrated/resource.go", "pattern": "PlanModifiers:\\s*\\[\\][^}]*?\\b(?:string|int64|int32|bool|float64|list|set|map|object|number|dynamic|float32)default\\.", "flags": ["s"], "expect": "absent"},
-        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
+        {"type": "regex", "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)", "files": ["migrated/resource.go", "migrated/schema_resource.go"], "pattern": "Default:\\s*(string|int64|int32|bool|float64|float32|list|set|map|object|number|dynamic)default\\."},
+        {"type": "regex", "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)", "files": ["migrated/resource.go", "migrated/schema_resource.go"], "pattern": "PlanModifiers:\\s*\\[\\][^}]*?\\b(?:string|int64|int32|bool|float64|list|set|map|object|number|dynamic|float32)default\\.", "flags": ["s"], "expect": "absent"},
+        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "files": ["migrated/resource.go", "migrated/schema_resource.go"], "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
         {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
       ]
     },
@@ -774,6 +774,54 @@
         {"type": "has_method", "text": "ImportState method present (composite-ID resource needs explicit import handling)", "file": "migrated/resource.go", "method": "ImportState"},
         {"type": "regex", "text": "MaxItems:1 blocks expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
         {"type": "regex", "text": "Default field uses the framework's per-type *default package", "file": "migrated/resource.go", "pattern": "Default:\\s*(string|int64|int32|bool|float64|float32|list|set|map|object|number|dynamic)default\\."},
+        {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
+      ]
+    },
+    {
+      "id": 22,
+      "name": "eval-linode-lke",
+      "prompt": "Migrate the resource defined in <clone-path>/linode/lke/resource.go (and its sibling schema_resource.go and cluster.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has Timeouts (Create/Update/Delete), a MaxItems:1 block (control_plane), Sensitive attributes (kubeconfig), and a CustomizeDiff for cross-field validation. Translate Timeouts to terraform-plugin-framework-timeouts (preserve HCL block syntax) and CustomizeDiff to ResourceWithModifyPlan. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated LKE resource with timeouts.Block, ResourceWithModifyPlan, Sensitive attrs, and MaxItems:1 → SingleNestedBlock or ListNestedBlock+SizeAtMost(1).",
+      "files": [],
+      "checks": [
+        {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
+        {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
+        {"type": "imports_package", "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts", "file": "migrated/resource.go", "package": "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"},
+        {"type": "regex", "text": "Uses timeouts.Block(...) (preserves HCL block syntax)", "file": "migrated/resource.go", "pattern": "timeouts\\.Block\\s*\\("},
+        {"type": "has_method", "text": "Implements ResourceWithModifyPlan (CustomizeDiff → ModifyPlan)", "file": "migrated/resource.go", "method": "ModifyPlan"},
+        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
+        {"type": "regex", "text": "Sensitive: true preserved on at least one attribute", "file": "migrated/resource.go", "pattern": "Sensitive\\s*:\\s*true"},
+        {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
+      ]
+    },
+    {
+      "id": 23,
+      "name": "eval-linode-domain",
+      "prompt": "Migrate the resource defined in <clone-path>/linode/domain/resource.go (and its sibling schema_resource.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has multiple DiffSuppressFunc (using helper.DomainSecondsDiffSuppressor for TTL-like fields) and a CustomizeDiff. Translate DiffSuppressFunc to a custom type implementing basetypes.Int64Typable/StringTypable OR a plan modifier (NOT a destructive ValueFromX that mutates the user's value). Translate CustomizeDiff to ResourceWithModifyPlan. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated domain resource with DiffSuppressFunc translated cleanly and ModifyPlan present.",
+      "files": [],
+      "checks": [
+        {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
+        {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
+        {"type": "regex", "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)", "file": "migrated/resource.go", "pattern": "DiffSuppressFunc", "expect": "absent", "ignore_comments": true},
+        {"type": "regex", "text": "Translation uses custom type (basetypes.Int64Typable/StringTypable etc.) OR a plan modifier", "file": "migrated/resource.go", "pattern": "(basetypes\\.|Int64Typable|Int64Valuable|StringTypable|StringValuable|PlanModifyInt64|PlanModifyString|int64planmodifier\\.|stringplanmodifier\\.)"},
+        {"type": "no_destructive_custom_type", "text": "No destructive custom type (a ValueFromX that mutates/normalises the input — would break the user's HCL input value).", "file": "migrated/resource.go"},
+        {"type": "has_method", "text": "Implements ResourceWithModifyPlan (CustomizeDiff → ModifyPlan)", "file": "migrated/resource.go", "method": "ModifyPlan"},
+        {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
+      ]
+    },
+    {
+      "id": 24,
+      "name": "eval-linode-instanceconfig",
+      "prompt": "Migrate the resource defined in <clone-path>/linode/instanceconfig/resource.go (and its sibling schema_resource.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has multiple ConflictsWith between attributes (e.g. devices vs device) and a MaxItems:1 nested block. Translate ConflictsWith to framework validators with path.Expressions. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated instance-config resource with ConflictsWith translated to per-attribute validators (or ResourceWithConfigValidators) using path.Expressions, and MaxItems:1 handled correctly.",
+      "files": [],
+      "checks": [
+        {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
+        {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
+        {"type": "regex", "text": "Cross-attribute constraints translated using framework validators (path.Expressions OR ResourceWithConfigValidators)", "file": "migrated/resource.go", "pattern": "(?:string|int64|int32|bool|float64|list|set|map|object)validator\\.(?:ConflictsWith|ExactlyOneOf|AtLeastOneOf|AlsoRequires)|resourcevalidator\\.(?:Conflicting|ExactlyOneOf|AtLeastOneOf|RequiredTogether)"},
+        {"type": "regex", "text": "No SDKv2 ConflictsWith: []string{...} literal remains", "file": "migrated/resource.go", "pattern": "ConflictsWith:\\s*\\[\\]string\\{", "expect": "absent"},
+        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
         {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
       ]
     },

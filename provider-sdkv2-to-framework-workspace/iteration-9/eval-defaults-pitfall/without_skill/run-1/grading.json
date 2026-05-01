@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": false,
+      "evidence": "still imports terraform-plugin-sdk/v2"
+    },
+    {
+      "text": "Default fields use the framework's per-type *default package (stringdefault, int64default, etc.)",
+      "passed": true,
+      "evidence": "matched: Default:  stringdefault."
+    },
+    {
+      "text": "No Default value appears inside any PlanModifiers slice",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "total": 4,
+    "pass_rate": 0.75
+  }
+}

@@ -24,9 +24,7 @@
 }
 ```
 
-`RequiresReplace()` lives in the per-type planmodifier package: `stringplanmodifier`, `int64planmodifier`, `int32planmodifier`, `float64planmodifier`, `float32planmodifier`, `boolplanmodifier`, `numberplanmodifier`, `listplanmodifier`, `setplanmodifier`, `mapplanmodifier`, `objectplanmodifier`, `dynamicplanmodifier`.
-
-There's also `RequiresReplaceIf(condition, ...)` and `RequiresReplaceIfConfigured()` for conditional replacement.
+`RequiresReplace()` lives in the per-type planmodifier package — one per attr type (`stringplanmodifier`, `int64planmodifier`, `boolplanmodifier`, `listplanmodifier`, etc., under `terraform-plugin-framework/resource/schema/...planmodifier`). Conditional variants: `RequiresReplaceIf(condition, ...)`, `RequiresReplaceIfConfigured()`.
 
 ## Defaults — separate package, NOT a plan modifier
 
@@ -46,16 +44,7 @@ import (
 }
 ```
 
-Common static defaults (per-type packages, all under `terraform-plugin-framework/resource/schema/...default`):
-- `stringdefault.StaticString("foo")`
-- `int64default.StaticInt64(42)` and `int32default.StaticInt32(42)`
-- `float64default.StaticFloat64(1.5)` and `float32default.StaticFloat32(1.5)`
-- `booldefault.StaticBool(true)`
-- `numberdefault.StaticBigFloat(...)`
-- For collection defaults: `listdefault.StaticValue(...)`, `setdefault.StaticValue(...)`, `mapdefault.StaticValue(...)`, `objectdefault.StaticValue(...)`
-- For dynamic typed defaults: `dynamicdefault.StaticValue(...)`
-
-For computed/derived defaults, write a custom default by implementing the `defaults.String` (etc.) interface.
+Per-type packages under `terraform-plugin-framework/resource/schema/...default`: `stringdefault.StaticString`, `int64default.StaticInt64`, `int32default.StaticInt32`, `booldefault.StaticBool`, `float64default.StaticFloat64`, `numberdefault.StaticBigFloat`. Collections: `{list,set,map,object}default.StaticValue(...)`. Dynamic-typed: `dynamicdefault.StaticValue(...)`. For computed/derived defaults, implement the `defaults.String` (etc.) interface.
 
 **A common mistake**: putting `Default` *inside* the `PlanModifiers` slice. That's a type error — `Default` is its own field on the attribute struct, separate from `PlanModifiers`.
 

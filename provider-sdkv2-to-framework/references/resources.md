@@ -35,16 +35,14 @@ func resourceThingCreate(ctx context.Context, d *schema.ResourceData, m interfac
 
 ```go
 var (
-    _ resource.Resource              = &thingResource{}
-    _ resource.ResourceWithConfigure = &thingResource{}
+    _ resource.Resource                = &thingResource{}
+    _ resource.ResourceWithConfigure   = &thingResource{}
     _ resource.ResourceWithImportState = &thingResource{}
 )
 
 func NewThingResource() resource.Resource { return &thingResource{} }
 
-type thingResource struct {
-    client *Client
-}
+type thingResource struct{ client *Client }
 
 type thingModel struct {
     ID   types.String `tfsdk:"id"`
@@ -56,16 +54,14 @@ func (r *thingResource) Metadata(ctx context.Context, req resource.MetadataReque
 }
 
 func (r *thingResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-    resp.Schema = schema.Schema{
-        Attributes: map[string]schema.Attribute{
-            "id":   schema.StringAttribute{Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-            "name": schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-        },
-    }
+    resp.Schema = schema.Schema{Attributes: map[string]schema.Attribute{
+        "id":   schema.StringAttribute{Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+        "name": schema.StringAttribute{Required: true, PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+    }}
 }
 
 func (r *thingResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-    if req.ProviderData == nil { return }
+    if req.ProviderData == nil { return } // called before provider Configure on early RPCs
     client, ok := req.ProviderData.(*Client)
     if !ok {
         resp.Diagnostics.AddError("unexpected provider data", fmt.Sprintf("%T", req.ProviderData))
@@ -78,54 +74,14 @@ func (r *thingResource) Create(ctx context.Context, req resource.CreateRequest, 
     var plan thingModel
     resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
     if resp.Diagnostics.HasError() { return }
-
     id, err := r.client.Create(plan.Name.ValueString())
-    if err != nil {
-        resp.Diagnostics.AddError("create failed", err.Error())
-        return
-    }
+    if err != nil { resp.Diagnostics.AddError("create failed", err.Error()); return }
     plan.ID = types.StringValue(id)
     resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
-func (r *thingResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-    var state thingModel
-    resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-    if resp.Diagnostics.HasError() { return }
-
-    out, err := r.client.Get(state.ID.ValueString())
-    if err != nil {
-        if isNotFound(err) {
-            resp.State.RemoveResource(ctx) // recreate on next plan
-            return
-        }
-        resp.Diagnostics.AddError("read failed", err.Error())
-        return
-    }
-    state.Name = types.StringValue(out.Name)
-    resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
-}
-
-func (r *thingResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-    var plan thingModel
-    resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-    if resp.Diagnostics.HasError() { return }
-
-    if err := r.client.Update(plan.ID.ValueString(), plan.Name.ValueString()); err != nil {
-        resp.Diagnostics.AddError("update failed", err.Error())
-        return
-    }
-    resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-func (r *thingResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-    var state thingModel
-    resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-    if resp.Diagnostics.HasError() { return }
-    if err := r.client.Delete(state.ID.ValueString()); err != nil {
-        resp.Diagnostics.AddError("delete failed", err.Error())
-    }
-}
+// Read, Update follow the same Plan/State.Get → API call → State.Set shape.
+// Read additionally calls resp.State.RemoveResource(ctx) on 404 (drift). Delete reads from req.State (Plan is null on Delete).
 
 func (r *thingResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
     resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
