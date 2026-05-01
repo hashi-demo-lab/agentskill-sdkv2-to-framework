@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+      "passed": true,
+      "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+      "passed": true,
+      "evidence": "ImportState method present"
+    },
+    {
+      "text": "Imports terraform-plugin-framework",
+      "passed": true,
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

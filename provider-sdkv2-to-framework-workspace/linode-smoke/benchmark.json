@@ -1,0 +1,338 @@
+{
+  "skill_name": "provider-sdkv2-to-framework",
+  "model": "claude-sonnet-4-6",
+  "date": "2026-05-01T01:55:57.017879+00:00",
+  "evals": 3,
+  "runs_per_config": 1,
+  "configurations": [
+    "with_skill",
+    "without_skill"
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 540.4667,
+        "stddev": 231.0638,
+        "min": 347.2,
+        "max": 796.4
+      },
+      "tokens": {
+        "mean": 100528.6667,
+        "stddev": 32050.4386,
+        "min": 81171,
+        "max": 137524
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.9444,
+        "stddev": 0.0962,
+        "min": 0.8333,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 334.6333,
+        "stddev": 80.5771,
+        "min": 241.7,
+        "max": 385.0
+      },
+      "tokens": {
+        "mean": 73083.6667,
+        "stddev": 12382.5565,
+        "min": 60876,
+        "max": 85634
+      }
+    }
+  },
+  "delta": {
+    "pass_rate": 0.0556,
+    "time_seconds": 205.8334,
+    "tokens": 27445
+  },
+  "runs": [
+    {
+      "eval_name": "eval-linode-databaseaccesscontrols",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 477.8,
+        "tokens": 82891,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+          "passed": true,
+          "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "passed": true,
+          "evidence": "ImportState method present"
+        },
+        {
+          "text": "Imports terraform-plugin-framework",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_name": "eval-linode-databaseaccesscontrols",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 377.2,
+        "tokens": 72741,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+          "passed": true,
+          "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "passed": true,
+          "evidence": "ImportState method present"
+        },
+        {
+          "text": "Imports terraform-plugin-framework",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_name": "eval-linode-objbucket",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 796.4,
+        "tokens": 137524,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+          "passed": true,
+          "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "passed": true,
+          "evidence": "ImportState method present"
+        },
+        {
+          "text": "MaxItems:1 blocks expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+          "passed": true,
+          "evidence": "matched: SizeAtMost(1)"
+        },
+        {
+          "text": "Default field uses the framework's per-type *default package",
+          "passed": true,
+          "evidence": "matched: Default:     stringdefault."
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_name": "eval-linode-objbucket",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 385.0,
+        "tokens": 85634,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+          "passed": true,
+          "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "passed": true,
+          "evidence": "ImportState method present"
+        },
+        {
+          "text": "MaxItems:1 blocks expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+          "passed": true,
+          "evidence": "matched: SingleNestedBlock"
+        },
+        {
+          "text": "Default field uses the framework's per-type *default package",
+          "passed": true,
+          "evidence": "matched: Default:     stringdefault."
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_name": "eval-linode-user",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 347.2,
+        "tokens": 81171,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+          "passed": true,
+          "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)",
+          "passed": true,
+          "evidence": "matched: Default:     booldefault."
+        },
+        {
+          "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+          "passed": true,
+          "evidence": "matched: SizeAtMost(1)"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_name": "eval-linode-user",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 241.7,
+        "tokens": 60876,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+          "passed": true,
+          "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)",
+          "passed": true,
+          "evidence": "matched: Default:     booldefault."
+        },
+        {
+          "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+          "passed": false,
+          "evidence": "no match"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": []
+    }
+  ]
+}
