@@ -734,6 +734,50 @@
       ]
     },
     {
+      "id": 19,
+      "name": "eval-linode-databaseaccesscontrols",
+      "prompt": "Migrate the resource defined in <clone-path>/linode/databaseaccesscontrols/resource.go (and its sibling schema_resource.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a custom Importer that parses a composite ID. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated resource implementing resource.Resource with explicit ImportState method that parses the composite ID. Linode-smoke generalisation eval — verifies the skill applies cleanly to a Linode SDKv2 resource not used during skill development.",
+      "files": [],
+      "checks": [
+        {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
+        {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
+        {"type": "has_method", "text": "ImportState method present (composite-ID resource needs explicit import handling)", "file": "migrated/resource.go", "method": "ImportState"},
+        {"type": "imports_package", "text": "Imports terraform-plugin-framework", "file": "migrated/resource.go", "package": "github.com/hashicorp/terraform-plugin-framework"},
+        {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
+      ]
+    },
+    {
+      "id": 20,
+      "name": "eval-linode-user",
+      "prompt": "Migrate the resource defined in <clone-path>/linode/user/resource.go (and its sibling schema_resource.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has many Default: false fields — translate each correctly. There is also a MaxItems: 1 block — make the right call between SingleNestedAttribute and ListNestedBlock. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated resource where every Default: field uses booldefault/stringdefault, NOT placed inside PlanModifiers (the documented pitfall). MaxItems:1 handled correctly. Linode-smoke generalisation eval.",
+      "files": [],
+      "checks": [
+        {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
+        {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
+        {"type": "regex", "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)", "file": "migrated/resource.go", "pattern": "Default:\\s*(string|int64|int32|bool|float64|float32|list|set|map|object|number|dynamic)default\\."},
+        {"type": "regex", "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)", "file": "migrated/resource.go", "pattern": "PlanModifiers:\\s*\\[\\][^}]*?\\b(?:string|int64|int32|bool|float64|list|set|map|object|number|dynamic|float32)default\\.", "flags": ["s"], "expect": "absent"},
+        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
+        {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
+      ]
+    },
+    {
+      "id": 21,
+      "name": "eval-linode-objbucket",
+      "prompt": "Migrate the resource defined in <clone-path>/linode/objbucket/resource.go (and its sibling schema_resource.go and helpers.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has multiple MaxItems:1 blocks (cert, lifecycle_rule), a Default value, and a custom Importer that parses a composite ID (cluster:label). Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated resource handling multiple MaxItems:1 blocks correctly, composite-ID ImportState, and Default value translated to defaults package. Linode-smoke generalisation eval.",
+      "files": [],
+      "checks": [
+        {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
+        {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
+        {"type": "has_method", "text": "ImportState method present (composite-ID resource needs explicit import handling)", "file": "migrated/resource.go", "method": "ImportState"},
+        {"type": "regex", "text": "MaxItems:1 blocks expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
+        {"type": "regex", "text": "Default field uses the framework's per-type *default package", "file": "migrated/resource.go", "pattern": "Default:\\s*(string|int64|int32|bool|float64|float32|list|set|map|object|number|dynamic)default\\."},
+        {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
+      ]
+    },
+    {
       "id": 18,
       "name": "eval-do-logsink-rsyslog",
       "prompt": "Migrate the resource defined in <clone-path>/digitalocean/database/resource_database_logsink_rsyslog.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. This resource has a composite-ID importer AND a CustomizeDiff. Translate both correctly. Update the corresponding test file. Don't migrate anything else in the repo.",

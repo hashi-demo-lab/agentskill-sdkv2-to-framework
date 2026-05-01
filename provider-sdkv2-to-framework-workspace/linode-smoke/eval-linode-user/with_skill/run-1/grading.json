@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+      "passed": true,
+      "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)",
+      "passed": true,
+      "evidence": "matched: Default:     booldefault."
+    },
+    {
+      "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+      "passed": true,
+      "evidence": "matched: SizeAtMost(1)"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}
