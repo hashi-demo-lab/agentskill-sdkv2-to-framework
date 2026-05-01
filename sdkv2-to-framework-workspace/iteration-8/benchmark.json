@@ -1,0 +1,1734 @@
+{
+  "skill_name": "sdkv2-to-framework",
+  "model": "claude-sonnet-4-6",
+  "date": "2026-05-01T01:09:48.302856+00:00",
+  "evals": 18,
+  "runs_per_config": 1,
+  "configurations": [
+    "with_skill",
+    "old_skill"
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 284.6389,
+        "stddev": 142.1005,
+        "min": 53.2,
+        "max": 532.5
+      },
+      "tokens": {
+        "mean": 63047.5,
+        "stddev": 25947.7026,
+        "min": 18302,
+        "max": 113547
+      }
+    },
+    "old_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 278.9889,
+        "stddev": 150.2577,
+        "min": 52.1,
+        "max": 578.3
+      },
+      "tokens": {
+        "mean": 63066.3333,
+        "stddev": 23022.0202,
+        "min": 17396,
+        "max": 102203
+      }
+    }
+  },
+  "delta": {
+    "pass_rate": 0.0,
+    "time_seconds": 5.65,
+    "tokens": -19.0
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "eval-inventory-only",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 347.9,
+        "tokens": 56938,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+          "passed": true,
+          "evidence": "matched 12/12; missing: []"
+        },
+        {
+          "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+          "passed": true,
+          "evidence": "matched: tests to use the framework, and ensure that the tests fail"
+        },
+        {
+          "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+          "passed": true,
+          "evidence": "matched: data consistency"
+        },
+        {
+          "text": "The audit report identifies at least one file under 'needs manual review'",
+          "passed": true,
+          "evidence": "matched: Needs manual review"
+        },
+        {
+          "text": "No source files in the provider clone have been modified (git status clean)",
+          "passed": true,
+          "evidence": "clean"
+        },
+        {
+          "text": "The produced inventory artefact is under 100 KB",
+          "passed": true,
+          "evidence": "audit_report.md = 24210 bytes (cap 100000)"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "eval-inventory-only",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 367.8,
+        "tokens": 63256,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+          "passed": true,
+          "evidence": "matched 12/12; missing: []"
+        },
+        {
+          "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+          "passed": true,
+          "evidence": "matched: tests to use the framework, and ensure that the tests fail"
+        },
+        {
+          "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+          "passed": true,
+          "evidence": "matched: data consistency"
+        },
+        {
+          "text": "The audit report identifies at least one file under 'needs manual review'",
+          "passed": true,
+          "evidence": "matched: Needs manual review"
+        },
+        {
+          "text": "No source files in the provider clone have been modified (git status clean)",
+          "passed": true,
+          "evidence": "clean"
+        },
+        {
+          "text": "The produced inventory artefact is under 100 KB",
+          "passed": true,
+          "evidence": "audit_report.md = 24149 bytes (cap 100000)"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-data-source-availability-zones",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 189.3,
+        "tokens": 40989,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Migrated file implements datasource.DataSource (Metadata, Schema, Read methods)",
+          "passed": true,
+          "evidence": "found 3/3: ['Metadata', 'Schema', 'Read']"
+        },
+        {
+          "text": "Uses datasource/schema package, not resource/schema",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+        },
+        {
+          "text": "Does NOT import resource/schema (datasource files use the datasource/schema package)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "3 attrs; coverage=100%; missing=[]"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go (gofmt -e clean)",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        },
+        {
+          "text": "Imports are confined to known framework / SDKv2 / openstack / stdlib paths",
+          "passed": true,
+          "evidence": "all imports in allowed set"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "eval-data-source-availability-zones",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 258.5,
+        "tokens": 54369,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Migrated file implements datasource.DataSource (Metadata, Schema, Read methods)",
+          "passed": true,
+          "evidence": "found 3/3: ['Metadata', 'Schema', 'Read']"
+        },
+        {
+          "text": "Uses datasource/schema package, not resource/schema",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+        },
+        {
+          "text": "Does NOT import resource/schema (datasource files use the datasource/schema package)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "passed": true,
+          "evidence": "3 attrs; coverage=100%; missing=[]"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go (gofmt -e clean)",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        },
+        {
+          "text": "Imports are confined to known framework / SDKv2 / openstack / stdlib paths",
+          "passed": true,
+          "evidence": "all imports in allowed set"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-resource-keypair",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 244.5,
+        "tokens": 63299,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "passed": true,
+          "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Every ForceNew attribute has a corresponding RequiresReplace plan modifier",
+          "passed": true,
+          "evidence": "matched: RequiresReplace("
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged",
+          "passed": true,
+          "evidence": "7 attrs; coverage=100%; missing=[]"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "eval-resource-keypair",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 175.1,
+        "tokens": 57673,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "passed": true,
+          "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Every ForceNew attribute has a corresponding RequiresReplace plan modifier",
+          "passed": true,
+          "evidence": "matched: RequiresReplace("
+        },
+        {
+          "text": "User-facing schema attribute names are unchanged",
+          "passed": true,
+          "evidence": "7 attrs; coverage=100%; missing=[]"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "eval-maxitems1-block",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 288.0,
+        "tokens": 54362,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "MaxItems:1 blocks migrated to SingleNestedAttribute OR ListNestedBlock with listvalidator.SizeAtMost(1)",
+          "passed": true,
+          "evidence": "matched: SingleNestedAttribute"
+        },
+        {
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "passed": true,
+          "evidence": "matched: references/blocks.md"
+        },
+        {
+          "text": "Reasoning justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
+          "passed": true,
+          "evidence": "matched: practitioner"
+        },
+        {
+          "text": "Schema source contains valid Go (gofmt -e clean)",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "eval-maxitems1-block",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 169.9,
+        "tokens": 48452,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "MaxItems:1 blocks migrated to SingleNestedAttribute OR ListNestedBlock with listvalidator.SizeAtMost(1)",
+          "passed": true,
+          "evidence": "matched: SingleNestedAttribute"
+        },
+        {
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "passed": true,
+          "evidence": "matched: SKILL.md / reference"
+        },
+        {
+          "text": "Reasoning justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
+          "passed": true,
+          "evidence": "matched: backward-compat"
+        },
+        {
+          "text": "Schema source contains valid Go (gofmt -e clean)",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "eval-true-repeating-block",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 89.9,
+        "tokens": 34213,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock",
+          "passed": true,
+          "evidence": "matched: SetNestedBlock"
+        },
+        {
+          "text": "Repeating blocks are NOT wrongly converted to ListNestedAttribute",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Reasoning correctly maps SDKv2 TypeSet \u2194 framework SetNestedBlock (vs TypeList \u2194 ListNestedBlock)",
+          "passed": true,
+          "evidence": "matched: TypeSet \u2192 SetNestedBlock"
+        },
+        {
+          "text": "Response justifies why blocks are preserved (HCL syntax / practitioner / backward compatibility)",
+          "passed": true,
+          "evidence": "matched: hcl"
+        },
+        {
+          "text": "Schema source contains valid Go (gofmt -e clean)",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "eval-true-repeating-block",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 175.7,
+        "tokens": 43965,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock",
+          "passed": true,
+          "evidence": "matched: SetNestedBlock"
+        },
+        {
+          "text": "Repeating blocks are NOT wrongly converted to ListNestedAttribute",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Reasoning correctly maps SDKv2 TypeSet \u2194 framework SetNestedBlock (vs TypeList \u2194 ListNestedBlock)",
+          "passed": true,
+          "evidence": "matched: TypeSet \u2192 SetNestedBlock"
+        },
+        {
+          "text": "Response justifies why blocks are preserved (HCL syntax / practitioner / backward compatibility)",
+          "passed": true,
+          "evidence": "matched: practitioner"
+        },
+        {
+          "text": "Schema source contains valid Go (gofmt -e clean)",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "eval-state-upgrade-objectstorage-container",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 490.4,
+        "tokens": 95995,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "passed": true,
+          "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Implements ResourceWithUpgradeState (UpgradeState method present)",
+          "passed": true,
+          "evidence": "matched: func (r *objectStorageContainerV1Resource) UpgradeState("
+        },
+        {
+          "text": "Each StateUpgrader entry has a PriorSchema field set",
+          "passed": true,
+          "evidence": "matched: PriorSchema:"
+        },
+        {
+          "text": "Notes mention single-step / target / current semantics (not chained)",
+          "passed": true,
+          "evidence": "matched: single-step"
+        },
+        {
+          "text": "schema.Schema.Version is set on the migrated resource",
+          "passed": true,
+          "evidence": "matched: schema.Schema{\n\t\t// Version must be set to the current schema version so that Terraform\n\t\t// knows to invoke UpgradeStat"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 6,
+      "eval_name": "eval-state-upgrade-objectstorage-container",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 571.0,
+        "tokens": 90079,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "passed": true,
+          "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Implements ResourceWithUpgradeState (UpgradeState method present)",
+          "passed": true,
+          "evidence": "matched: func (r *objectStorageContainerV1Resource) UpgradeState("
+        },
+        {
+          "text": "Each StateUpgrader entry has a PriorSchema field set",
+          "passed": true,
+          "evidence": "matched: PriorSchema:"
+        },
+        {
+          "text": "Notes mention single-step / target / current semantics (not chained)",
+          "passed": true,
+          "evidence": "matched: single-step"
+        },
+        {
+          "text": "schema.Schema.Version is set on the migrated resource",
+          "passed": true,
+          "evidence": "matched: schema.Schema{\n\t\t// Version matches the SDKv2 SchemaVersion: 1.\n\t\tVersion: 1"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "eval-defaults-pitfall",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 194.2,
+        "tokens": 62930,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Default fields use the framework's per-type *default package (stringdefault, int64default, etc.)",
+          "passed": true,
+          "evidence": "matched: Default:  stringdefault."
+        },
+        {
+          "text": "No Default value appears inside any PlanModifiers slice",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 7,
+      "eval_name": "eval-defaults-pitfall",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 249.1,
+        "tokens": 66549,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Default fields use the framework's per-type *default package (stringdefault, int64default, etc.)",
+          "passed": true,
+          "evidence": "matched: Default:  stringdefault."
+        },
+        {
+          "text": "No Default value appears inside any PlanModifiers slice",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "eval-mux-refusal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 53.2,
+        "tokens": 18302,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent refuses or defers the mux/multi-release request",
+          "passed": true,
+          "evidence": "matched 8/9: ['out of scope', 'cannot', 'not (apply|appropriate|covered)']"
+        },
+        {
+          "text": "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+          "passed": true,
+          "evidence": "matched 3/3: ['developer\\\\.hashicorp\\\\.com.*mux', 'terraform-plugin-mux', 'hashicorp.{0,40}mux.*doc']"
+        },
+        {
+          "text": "No source files in the provider clone were modified (refusal must not touch code)",
+          "passed": true,
+          "evidence": "clean"
+        },
+        {
+          "text": "No migrated/*.go output was produced",
+          "passed": true,
+          "evidence": "no migrated/*.go"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 8,
+      "eval_name": "eval-mux-refusal",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 52.1,
+        "tokens": 17396,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent refuses or defers the mux/multi-release request",
+          "passed": true,
+          "evidence": "matched 6/9: ['out of scope', 'not (apply|appropriate|covered)', 'skill does not']"
+        },
+        {
+          "text": "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+          "passed": true,
+          "evidence": "matched 2/3: ['developer\\\\.hashicorp\\\\.com.*mux', 'terraform-plugin-mux']"
+        },
+        {
+          "text": "No source files in the provider clone were modified (refusal must not touch code)",
+          "passed": true,
+          "evidence": "clean"
+        },
+        {
+          "text": "No migrated/*.go output was produced",
+          "passed": true,
+          "evidence": "no migrated/*.go"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 9,
+      "eval_name": "eval-chained-upgraders",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 123.7,
+        "tokens": 31585,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "UpgradeState returns map with both prior versions 0 AND 1 (V0\u2192current AND V1\u2192current)",
+          "passed": true,
+          "evidence": "matched: 0: {"
+        },
+        {
+          "text": "Map entry for V1\u2192current is also present",
+          "passed": true,
+          "evidence": "matched: 1: {"
+        },
+        {
+          "text": "At least 2 distinct PriorSchema references (one per prior version)",
+          "passed": true,
+          "evidence": "matched 2 (need >= 2)"
+        },
+        {
+          "text": "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "schema.Schema.Version is set to 2 (current version)",
+          "passed": true,
+          "evidence": "matched: schema.Schema{\n\t\tVersion: 2"
+        },
+        {
+          "text": "Migrated file imports terraform-plugin-framework",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 9,
+      "eval_name": "eval-chained-upgraders",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 115.3,
+        "tokens": 29691,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "UpgradeState returns map with both prior versions 0 AND 1 (V0\u2192current AND V1\u2192current)",
+          "passed": true,
+          "evidence": "matched: 0: {"
+        },
+        {
+          "text": "Map entry for V1\u2192current is also present",
+          "passed": true,
+          "evidence": "matched: 1: {"
+        },
+        {
+          "text": "At least 2 distinct PriorSchema references (one per prior version)",
+          "passed": true,
+          "evidence": "matched 2 (need >= 2)"
+        },
+        {
+          "text": "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "schema.Schema.Version is set to 2 (current version)",
+          "passed": true,
+          "evidence": "matched: schema.Schema{\n\t\tVersion: 2"
+        },
+        {
+          "text": "Migrated file imports terraform-plugin-framework",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 10,
+      "eval_name": "eval-cross-attr-validators",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 194.2,
+        "tokens": 56663,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Cross-attribute constraints translated using framework validators (path.Expressions OR ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "matched: stringvalidator.ConflictsWith"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 10,
+      "eval_name": "eval-cross-attr-validators",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 220.3,
+        "tokens": 63468,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Cross-attribute constraints translated using framework validators (path.Expressions OR ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "matched: stringvalidator.ConflictsWith"
+        },
+        {
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 11,
+      "eval_name": "eval-identity",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 532.5,
+        "tokens": 113547,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method present"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "matched 2 (need >= 2)"
+        },
+        {
+          "text": "ImportState parses legacy req.ID composite (strings.SplitN or equivalent)",
+          "passed": true,
+          "evidence": "matched: req.ID"
+        },
+        {
+          "text": "ImportState handles modern req.Identity (ImportStatePassthroughWithIdentity OR direct req.Identity reads)",
+          "passed": true,
+          "evidence": "matched: req.Identity"
+        },
+        {
+          "text": "Identity is written somewhere (Identity.Set or setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "matched: Identity.Set("
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 11,
+      "eval_name": "eval-identity",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 578.3,
+        "tokens": 102203,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements ResourceWithIdentity (IdentitySchema method present)",
+          "passed": true,
+          "evidence": "IdentitySchema method present"
+        },
+        {
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "passed": true,
+          "evidence": "matched 2 (need >= 2)"
+        },
+        {
+          "text": "ImportState parses legacy req.ID composite (strings.SplitN or equivalent)",
+          "passed": true,
+          "evidence": "matched: req.ID"
+        },
+        {
+          "text": "ImportState handles modern req.Identity (ImportStatePassthroughWithIdentity OR direct req.Identity reads)",
+          "passed": true,
+          "evidence": "matched: ImportStatePassthroughWithIdentity"
+        },
+        {
+          "text": "Identity is written somewhere (Identity.Set or setIdentity helper invoked)",
+          "passed": true,
+          "evidence": "matched: Identity.Set("
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 12,
+      "eval_name": "eval-write-only",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 217.7,
+        "tokens": 55194,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true; is NOT Computed",
+          "passed": true,
+          "evidence": "\"password\" matches expected properties"
+        },
+        {
+          "text": "In CRUD methods, the password is read from req.Config (write-only values aren't in Plan/State)",
+          "passed": true,
+          "evidence": "matched: req.Config.Get"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "matched: ImportStateVerifyIgnore: []string{\"password\""
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 12,
+      "eval_name": "eval-write-only",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 186.7,
+        "tokens": 52823,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true; is NOT Computed",
+          "passed": true,
+          "evidence": "\"password\" matches expected properties"
+        },
+        {
+          "text": "In CRUD methods, the password is read from req.Config (write-only values aren't in Plan/State)",
+          "passed": true,
+          "evidence": "matched: req.Config.Get"
+        },
+        {
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "passed": true,
+          "evidence": "matched: ImportStateVerifyIgnore: []string{\"password\""
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 13,
+      "eval_name": "eval-timeouts",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 406.0,
+        "tokens": 44854,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+        },
+        {
+          "text": "Uses timeouts.Block(...) (preserves HCL block syntax)",
+          "passed": true,
+          "evidence": "matched: timeouts.Block("
+        },
+        {
+          "text": "Does NOT use timeouts.Attributes(...) \u2014 would change practitioner-visible HCL syntax",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\"",
+          "passed": true,
+          "evidence": "matched: Timeouts   timeouts.Value `tfsdk:\"timeouts\"`"
+        },
+        {
+          "text": "Create / Delete invoke plan.Timeouts.Create(ctx, ...) / .Delete(ctx, ...)",
+          "passed": true,
+          "evidence": "matched: .Timeouts.Create(ctx"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 13,
+      "eval_name": "eval-timeouts",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 164.3,
+        "tokens": 44685,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+        },
+        {
+          "text": "Uses timeouts.Block(...) (preserves HCL block syntax)",
+          "passed": true,
+          "evidence": "matched: timeouts.Block("
+        },
+        {
+          "text": "Does NOT use timeouts.Attributes(...) \u2014 would change practitioner-visible HCL syntax",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\"",
+          "passed": true,
+          "evidence": "matched: Timeouts   timeouts.Value `tfsdk:\"timeouts\"`"
+        },
+        {
+          "text": "Create / Delete invoke plan.Timeouts.Create(ctx, ...) / .Delete(ctx, ...)",
+          "passed": true,
+          "evidence": "matched: .Timeouts.Create(ctx"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 14,
+      "eval_name": "eval-do-vpc",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 224.2,
+        "tokens": 60321,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "passed": true,
+          "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Imports terraform-plugin-framework",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 14,
+      "eval_name": "eval-do-vpc",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 201.3,
+        "tokens": 54574,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "passed": true,
+          "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+        },
+        {
+          "text": "Imports terraform-plugin-framework",
+          "passed": true,
+          "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 15,
+      "eval_name": "eval-do-certificate",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 521.7,
+        "tokens": 104106,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements ResourceWithUpgradeState (UpgradeState method present, V0 state upgrader migrated)",
+          "passed": true,
+          "evidence": "UpgradeState method present"
+        },
+        {
+          "text": "Each StateUpgrader entry has a PriorSchema field set",
+          "passed": true,
+          "evidence": "matched: PriorSchema:"
+        },
+        {
+          "text": "StateFunc translated (custom type implementing basetypes.StringValuable / Typable, OR a plan modifier)",
+          "passed": true,
+          "evidence": "matched: stringplanmodifier."
+        },
+        {
+          "text": "No destructive custom type (a ValueFromString that hashes/normalises the input \u2014 sends the hash to the API instead of the user's value). Per the skill: use WriteOnly OR plain types.String + hash in CRUD instead.",
+          "passed": true,
+          "evidence": "no destructive ValueFromString detected"
+        },
+        {
+          "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "ConflictsWith translated to framework validators (any per-type validator package OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "matched: stringvalidator.ConflictsWith"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 15,
+      "eval_name": "eval-do-certificate",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 417.8,
+        "tokens": 94399,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements ResourceWithUpgradeState (UpgradeState method present, V0 state upgrader migrated)",
+          "passed": true,
+          "evidence": "UpgradeState method present"
+        },
+        {
+          "text": "Each StateUpgrader entry has a PriorSchema field set",
+          "passed": true,
+          "evidence": "matched: PriorSchema:"
+        },
+        {
+          "text": "StateFunc translated (custom type implementing basetypes.StringValuable / Typable, OR a plan modifier)",
+          "passed": true,
+          "evidence": "matched: stringplanmodifier."
+        },
+        {
+          "text": "No destructive custom type (a ValueFromString that hashes/normalises the input \u2014 sends the hash to the API instead of the user's value). Per the skill: use WriteOnly OR plain types.String + hash in CRUD instead.",
+          "passed": true,
+          "evidence": "no destructive ValueFromString detected"
+        },
+        {
+          "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "ConflictsWith translated to framework validators (any per-type validator package OR resource-level ResourceWithConfigValidators)",
+          "passed": true,
+          "evidence": "matched: setvalidator.ConflictsWith"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 16,
+      "eval_name": "eval-do-database-user",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 368.2,
+        "tokens": 85316,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Password is marked Sensitive AND remains Computed; WriteOnly is NOT applied (decision rule: Terraform needs to read it back)",
+          "passed": true,
+          "evidence": "\"password\" matches expected properties"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 16,
+      "eval_name": "eval-do-database-user",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 286.3,
+        "tokens": 77670,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Password is marked Sensitive AND remains Computed; WriteOnly is NOT applied (decision rule: Terraform needs to read it back)",
+          "passed": true,
+          "evidence": "\"password\" matches expected properties"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 17,
+      "eval_name": "eval-do-firewall",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 355.3,
+        "tokens": 90575,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
+          "passed": true,
+          "evidence": "ModifyPlan method present"
+        },
+        {
+          "text": "Compile-time assertion: var _ resource.ResourceWithModifyPlan = ...",
+          "passed": true,
+          "evidence": "asserts resource.ResourceWithModifyPlan"
+        },
+        {
+          "text": "No SDKv2 customdiff.* helper remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "No SDKv2 CustomizeDiff field remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 17,
+      "eval_name": "eval-do-firewall",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 419.6,
+        "tokens": 86305,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
+          "passed": true,
+          "evidence": "ModifyPlan method present"
+        },
+        {
+          "text": "Compile-time assertion: var _ resource.ResourceWithModifyPlan = ...",
+          "passed": true,
+          "evidence": "asserts resource.ResourceWithModifyPlan"
+        },
+        {
+          "text": "No SDKv2 customdiff.* helper remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "No SDKv2 CustomizeDiff field remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    },
+    {
+      "eval_id": 18,
+      "eval_name": "eval-do-logsink-rsyslog",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 282.6,
+        "tokens": 65666,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "passed": true,
+          "evidence": "ImportState method present"
+        },
+        {
+          "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
+          "passed": true,
+          "evidence": "ModifyPlan method present"
+        },
+        {
+          "text": "No SDKv2 CustomizeDiff field remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "with_skill"
+    },
+    {
+      "eval_id": 18,
+      "eval_name": "eval-do-logsink-rsyslog",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 412.7,
+        "tokens": 87637,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "passed": true,
+          "evidence": "sdkv2 import absent"
+        },
+        {
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "passed": true,
+          "evidence": "ImportState method present"
+        },
+        {
+          "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
+          "passed": true,
+          "evidence": "ModifyPlan method present"
+        },
+        {
+          "text": "No SDKv2 CustomizeDiff field remains",
+          "passed": true,
+          "evidence": "absent"
+        },
+        {
+          "text": "Migrated file is syntactically valid Go",
+          "passed": true,
+          "evidence": "gofmt -e clean"
+        }
+      ],
+      "notes": [],
+      "configuration": "old_skill"
+    }
+  ]
+}

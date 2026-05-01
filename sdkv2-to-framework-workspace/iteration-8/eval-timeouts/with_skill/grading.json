@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+      "passed": true,
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+    },
+    {
+      "text": "Uses timeouts.Block(...) (preserves HCL block syntax)",
+      "passed": true,
+      "evidence": "matched: timeouts.Block("
+    },
+    {
+      "text": "Does NOT use timeouts.Attributes(...) \u2014 would change practitioner-visible HCL syntax",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\"",
+      "passed": true,
+      "evidence": "matched: Timeouts   timeouts.Value `tfsdk:\"timeouts\"`"
+    },
+    {
+      "text": "Create / Delete invoke plan.Timeouts.Create(ctx, ...) / .Delete(ctx, ...)",
+      "passed": true,
+      "evidence": "matched: .Timeouts.Create(ctx"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

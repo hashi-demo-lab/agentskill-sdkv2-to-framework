@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
+      "passed": true,
+      "evidence": "ModifyPlan method present"
+    },
+    {
+      "text": "Compile-time assertion: var _ resource.ResourceWithModifyPlan = ...",
+      "passed": true,
+      "evidence": "asserts resource.ResourceWithModifyPlan"
+    },
+    {
+      "text": "No SDKv2 customdiff.* helper remains",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "No SDKv2 CustomizeDiff field remains",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}

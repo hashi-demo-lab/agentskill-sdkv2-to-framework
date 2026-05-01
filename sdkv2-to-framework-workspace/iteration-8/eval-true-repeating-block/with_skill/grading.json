@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock",
+      "passed": true,
+      "evidence": "matched: SetNestedBlock"
+    },
+    {
+      "text": "Repeating blocks are NOT wrongly converted to ListNestedAttribute",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "Reasoning correctly maps SDKv2 TypeSet \u2194 framework SetNestedBlock (vs TypeList \u2194 ListNestedBlock)",
+      "passed": true,
+      "evidence": "matched: TypeSet \u2192 SetNestedBlock"
+    },
+    {
+      "text": "Response justifies why blocks are preserved (HCL syntax / practitioner / backward compatibility)",
+      "passed": true,
+      "evidence": "matched: hcl"
+    },
+    {
+      "text": "Schema source contains valid Go (gofmt -e clean)",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "MaxItems:1 blocks migrated to SingleNestedAttribute OR ListNestedBlock with listvalidator.SizeAtMost(1)",
+      "passed": true,
+      "evidence": "matched: SingleNestedAttribute"
+    },
+    {
+      "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+      "passed": true,
+      "evidence": "matched: SKILL.md / reference"
+    },
+    {
+      "text": "Reasoning justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
+      "passed": true,
+      "evidence": "matched: backward-compat"
+    },
+    {
+      "text": "Schema source contains valid Go (gofmt -e clean)",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

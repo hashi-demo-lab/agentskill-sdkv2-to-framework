@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+      "passed": true,
+      "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "Imports terraform-plugin-framework",
+      "passed": true,
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

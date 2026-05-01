@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Cross-attribute constraints translated using framework validators (path.Expressions OR ResourceWithConfigValidators)",
+      "passed": true,
+      "evidence": "matched: stringvalidator.ConflictsWith"
+    },
+    {
+      "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

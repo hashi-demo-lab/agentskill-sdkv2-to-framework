@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Migrated file implements datasource.DataSource (Metadata, Schema, Read methods)",
+      "passed": true,
+      "evidence": "found 3/3: ['Metadata', 'Schema', 'Read']"
+    },
+    {
+      "text": "Uses datasource/schema package, not resource/schema",
+      "passed": true,
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+    },
+    {
+      "text": "Does NOT import resource/schema (datasource files use the datasource/schema package)",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+      "passed": true,
+      "evidence": "3 attrs; coverage=100%; missing=[]"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go (gofmt -e clean)",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    },
+    {
+      "text": "Imports are confined to known framework / SDKv2 / openstack / stdlib paths",
+      "passed": true,
+      "evidence": "all imports in allowed set"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

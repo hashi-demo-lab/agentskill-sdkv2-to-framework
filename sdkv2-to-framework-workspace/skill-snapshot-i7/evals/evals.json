@@ -138,6 +138,12 @@
           "pattern": "RequiresReplace\\s*\\("
         },
         {
+          "type": "imports_package",
+          "text": "Imports terraform-plugin-framework-validators (ValidateFunc → Validators slice)",
+          "file": "migrated/resource_openstack_compute_keypair_v2.go",
+          "package": "github.com/hashicorp/terraform-plugin-framework-validators"
+        },
+        {
           "type": "attrs_preserved",
           "text": "User-facing schema attribute names are unchanged",
           "original_file": "openstack/resource_openstack_compute_keypair_v2.go",
@@ -359,13 +365,13 @@
           "type": "regex",
           "text": "UpgradeState returns map with both prior versions 0 AND 1 (V0→current AND V1→current)",
           "file": "migrated/resource_widget_v2.go",
-          "pattern": "0\\s*:\\s*(?:(?:resource\\.)?StateUpgrader\\s*)?\\{"
+          "pattern": "0\\s*:\\s*(?:resource\\.)?StateUpgrader"
         },
         {
           "type": "regex",
           "text": "Map entry for V1→current is also present",
           "file": "migrated/resource_widget_v2.go",
-          "pattern": "1\\s*:\\s*(?:(?:resource\\.)?StateUpgrader\\s*)?\\{"
+          "pattern": "1\\s*:\\s*(?:resource\\.)?StateUpgrader"
         },
         {
           "type": "regex_count",

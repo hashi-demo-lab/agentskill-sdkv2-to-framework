@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+      "passed": true,
+      "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "Implements ResourceWithUpgradeState (UpgradeState method present)",
+      "passed": true,
+      "evidence": "matched: func (r *objectStorageContainerV1Resource) UpgradeState("
+    },
+    {
+      "text": "Each StateUpgrader entry has a PriorSchema field set",
+      "passed": true,
+      "evidence": "matched: PriorSchema:"
+    },
+    {
+      "text": "Notes mention single-step / target / current semantics (not chained)",
+      "passed": true,
+      "evidence": "matched: single-step"
+    },
+    {
+      "text": "schema.Schema.Version is set on the migrated resource",
+      "passed": true,
+      "evidence": "matched: schema.Schema{\n\t\t// Version matches the SDKv2 SchemaVersion: 1.\n\t\tVersion: 1"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  }
+}

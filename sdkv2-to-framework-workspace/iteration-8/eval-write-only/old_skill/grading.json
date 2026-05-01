@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true; is NOT Computed",
+      "passed": true,
+      "evidence": "\"password\" matches expected properties"
+    },
+    {
+      "text": "In CRUD methods, the password is read from req.Config (write-only values aren't in Plan/State)",
+      "passed": true,
+      "evidence": "matched: req.Config.Get"
+    },
+    {
+      "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+      "passed": true,
+      "evidence": "matched: ImportStateVerifyIgnore: []string{\"password\""
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

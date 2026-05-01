@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+      "passed": true,
+      "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "Every ForceNew attribute has a corresponding RequiresReplace plan modifier",
+      "passed": true,
+      "evidence": "matched: RequiresReplace("
+    },
+    {
+      "text": "User-facing schema attribute names are unchanged",
+      "passed": true,
+      "evidence": "7 attrs; coverage=100%; missing=[]"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}
