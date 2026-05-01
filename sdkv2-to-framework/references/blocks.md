@@ -9,15 +9,25 @@
 
 ## The decision tree
 
+For each `TypeList`/`TypeSet` of `&schema.Resource{...}`, the question to answer first is *"does breaking the HCL syntax matter here?"*, not "what does the framework prefer?". Order the questions accordingly:
+
 ```
 Was this a TypeList/TypeSet of &schema.Resource{} in SDKv2?
 ├── No → it's a primitive collection or scalar; not a block-vs-attribute decision
 └── Yes:
     ├── MaxItems: 1
-    │   └── Practitioners wrote: foo { name = "x" }
-    │       Convert to SingleNestedAttribute → practitioners now write: foo = { name = "x" }
-    │       This IS a syntactic change; document in CHANGELOG.
-    │       (If backward compat is sacred, keep as ListNestedBlock with MaxItems: 1.)
+    │   ├── Q1: Are practitioners using block syntax (`foo { ... }`) in production
+    │   │       configs? (production usage, examples in the docs, public modules
+    │   │       referencing it)
+    │   │   └── Yes → keep as block (Output A: ListNestedBlock + listvalidator.SizeAtMost(1),
+    │   │            or SingleNestedBlock). Switching is a breaking HCL change.
+    │   ├── Q2: Major-version bump or greenfield resource?
+    │   │   └── Yes → convert to SingleNestedAttribute (Output B). Document the
+    │   │            syntactic change in CHANGELOG.
+    │   └── Q3: Can't confirm either?
+    │       └── Keep as block (Output A); note in the per-resource checklist row:
+    │            "kept as block; switch to single nested attribute on next major
+    │            once usage confirmed safe."
     └── No MaxItems (true repeating)
         └── Practitioners wrote: rule { ... } rule { ... }
             Keep as ListNestedBlock or SetNestedBlock — converting changes HCL.
