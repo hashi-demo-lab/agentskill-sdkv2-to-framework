@@ -52,14 +52,19 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 0
 fi
 
-python3 - <<'PY' "$SKILL_ROOT/SKILL.md"
-import re, sys
+python3 - <<'PY' "$SKILL_ROOT/SKILL.md" "$SKILL_ROOT"
+import re, sys, os
+from pathlib import Path
 try:
     import yaml
 except ImportError:
     print("WARN: PyYAML not installed; skipping frontmatter check.", file=sys.stderr)
     sys.exit(0)
-text = open(sys.argv[1]).read()
+
+skill_md_path, skill_root = sys.argv[1], sys.argv[2]
+text = open(skill_md_path).read()
+
+# 1. Frontmatter parses + required keys present.
 m = re.match(r"^---\n(.*?)\n---", text, re.S)
 if not m:
     print(f"FAIL: SKILL.md missing YAML frontmatter delimited by ---", file=sys.stderr)
@@ -72,7 +77,44 @@ except yaml.YAMLError as e:
 if not isinstance(fm, dict) or "name" not in fm or "description" not in fm:
     print(f"FAIL: SKILL.md frontmatter missing required keys (name, description). Got: {list(fm) if isinstance(fm, dict) else type(fm).__name__}", file=sys.stderr)
     sys.exit(1)
-print(f"OK: SKILL.md frontmatter parses (name={fm['name']!r}, description={len(fm['description'])} chars).", file=sys.stderr)
+
+# 2. Description fits Anthropic's 1024-char hard cap.
+DESC_MAX = 1024
+desc_len = len(fm["description"])
+if desc_len > DESC_MAX:
+    print(f"FAIL: SKILL.md description is {desc_len} chars (max {DESC_MAX}).", file=sys.stderr)
+    sys.exit(1)
+
+print(f"OK: SKILL.md frontmatter parses (name={fm['name']!r}, description={desc_len} chars).", file=sys.stderr)
+
+# 3. Cross-links from SKILL.md to references/*.md and scripts/*.{sh,yml} resolve.
+#    Catches typos before they ship — "see references/blocks.md" pointing at a
+#    file that was renamed or never existed is a load-bearing failure once the
+#    skill ships, since Claude won't get a graceful "not found" — it'll just
+#    proceed without the referenced material. References to assets/ also count.
+REF_PATTERNS = [
+    re.compile(r'`?references/([\w\-]+\.md)`?'),
+    re.compile(r'`?scripts/([\w\-]+\.(?:sh|yml|yaml|py))`?'),
+    re.compile(r'`?assets/([\w\-]+\.md)`?'),
+]
+SUBDIR_BY_PATTERN = ["references", "scripts", "assets"]
+
+# Body only — frontmatter description may contain phrases that look like paths.
+body = text[m.end():]
+broken = []
+for sub, pat in zip(SUBDIR_BY_PATTERN, REF_PATTERNS):
+    for fname in sorted(set(pat.findall(body))):
+        target = Path(skill_root) / sub / fname
+        if not target.exists():
+            broken.append(f"{sub}/{fname}")
+
+if broken:
+    print(f"FAIL: SKILL.md mentions {len(broken)} file(s) that don't exist:", file=sys.stderr)
+    for b in broken:
+        print(f"  - {b}", file=sys.stderr)
+    sys.exit(1)
+
+print(f"OK: SKILL.md cross-links resolve.", file=sys.stderr)
 PY
 
 exit $?

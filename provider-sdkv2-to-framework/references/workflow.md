@@ -21,40 +21,24 @@
 
 `TF_LOG=WARN` runs of the existing test suite will surface most of these. Fix in SDKv2 form first; do not carry the bug into the framework.
 
-#### Concrete recipes (run all four against the provider before step 3)
+#### Audit rules that flag step-2 patterns
 
-These find the four common static patterns that become hard errors under the framework. The audit script (`scripts/audit_sdkv2.sh`) flags most of them; the recipes below are the per-attribute drilldown when you need to inspect specific blocks.
+Step 2 detection is folded into `scripts/audit_sdkv2.sh` — a single audit run inventories all four data-consistency patterns. The relevant rule ids in the audit's "Step 2 — data-consistency (fix in SDKv2 first)" section:
+
+- `optional-computed-without-usestateforunknown` — every Optional+Computed attribute where no `UseStateForUnknown` (or `UseNonNullStateForUnknown`) plan modifier is wired. Under SDKv2 this is silent; under the framework it surfaces as "Provider produced inconsistent result after apply" if the value drifts, and as "(known after apply)" plan noise even when it doesn't.
+- `default-on-non-computed` — `Default:` on an attribute without `Computed: true`. The framework rejects this at provider boot via `ValidateImplementation`; SDKv2 didn't enforce.
+- `typelist-maxitems1-without-elem` — `TypeList + MaxItems: 1` with no nested `Elem`. The framework's block-vs-attribute decision needs the nested type to make a call; SDKv2 silently treated this as a no-op block.
+- `force-new-on-computed` — `ForceNew: true` on a pure `Computed` attribute. Framework rejects this combination at schema validation time; SDKv2 accepted it silently.
+
+If any of those rule ids show non-zero hits in the audit report's per-rule summary, fix in SDKv2 form first. Each is a one-line correction that costs minutes now and hours later (the framework error often points at a downstream symptom, not the root cause).
+
+If you need a per-attribute drilldown rather than the audit's per-file rollup — e.g., to see *which* attributes inside a multi-thousand-line `provider.go` are the offenders — re-run semgrep against just that file with the rule from `scripts/audit_sdkv2.semgrep.yml`:
 
 ```sh
-# 1. Optional + Computed without UseStateForUnknown — every plan shows
-#    "(known after apply)" and may trigger spurious replacements downstream.
-#    Under SDKv2 this is silent; under the framework it surfaces as
-#    "Provider produced inconsistent result after apply" if the value drifts.
-#    Recipe: list every schema block containing both Optional:true and
-#    Computed:true, then visually check whether UseStateForUnknown is also set.
-semgrep --lang go -e '{...,Optional: true,...,Computed: true,...}' \
-        --include='*.go' --exclude='vendor/' .
-
-# 2. Default on a non-Computed attribute. The framework requires Computed:true
-#    for any attribute with a Default; SDKv2 didn't enforce it.
-semgrep --lang go --pattern-not '{...,Computed: true,...,Default: $X,...}' \
-        -e '{...,Default: $X,...}' \
-        --include='*.go' --exclude='vendor/' .
-
-# 3. TypeList + MaxItems:1 without Elem. The framework's block-vs-attribute
-#    decision needs the nested type to make a call; SDKv2 silently treated
-#    this as a no-op block.
-semgrep --lang go -e '{Type: schema.TypeList, MaxItems: 1, ...}' \
-        --pattern-not '{Type: schema.TypeList, MaxItems: 1, ..., Elem: $X, ...}' \
-        --include='*.go' --exclude='vendor/' .
-
-# 4. ForceNew on a Computed attribute. Framework rejects this combination
-#    at schema validation time; SDKv2 accepted it silently.
-semgrep --lang go -e '{...,ForceNew: true,...,Computed: true,...}' \
-        --include='*.go' --exclude='vendor/' .
+semgrep --config scripts/audit_sdkv2.semgrep.yml \
+        --include 'provider.go' \
+        path/to/provider/internal/foo
 ```
-
-If any of the four return matches, fix in SDKv2 form first. Each one is a one-line correction that costs minutes now and hours later (the framework error often points at a downstream symptom, not the root cause).
 
 For runtime data-consistency, also run the existing acceptance test suite with `TF_LOG=WARN TF_ACC=1 go test ./... 2>&1 | grep -i 'inconsistent\|warning'` — surfaces the dynamic offenders the static checks can't see. (`TF_LOG` levels are uppercase: `TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`.)
 

@@ -234,6 +234,12 @@ RULE_LABELS = {
     "test-resource-test-helper":    "resource.Test/UnitTest/ParallelTest (must use terraform-plugin-testing)",
     "test-providers-field":         "Providers: (older test field — pre-SDKv2.5)",
     "test-pre-check":               "PreCheck: (test pre-check, often references *schema.Provider plumbing)",
+    # -- Step-2 data-consistency rules (the most-skipped step's detectors) --
+    "optional-computed-without-usestateforunknown": "Optional+Computed without UseStateForUnknown (plan-noise / spurious replacement)",
+    "default-on-non-computed":      "Default: without Computed:true (framework rejects at boot)",
+    "force-new-on-computed":        "ForceNew on pure-Computed attribute (framework rejects at boot)",
+    "sensitive-statefunc-hash-placeholder": "Sensitive + StateFunc (hash-placeholder — candidate WriteOnly migration)",
+    "typelist-maxitems1-without-elem": "TypeList + MaxItems:1 without Elem (malformed schema)",
 }
 
 # Per-file complexity score, weighted to surface files that need most attention.
@@ -263,6 +269,13 @@ def score(counts):
         + counts.get("schema-default-timeout", 0) * 1
         + counts.get("resource-diff-signature", 0) * 4
         + counts.get("helper-structure", 0) * 2
+        # Step-2 data-consistency signals get high weight — they're cheap to fix
+        # in SDKv2 and turn into hard framework errors after migration.
+        + counts.get("default-on-non-computed", 0) * 3
+        + counts.get("force-new-on-computed", 0) * 3
+        + counts.get("typelist-maxitems1-without-elem", 0) * 3
+        + counts.get("optional-computed-without-usestateforunknown", 0) * 1
+        + counts.get("sensitive-statefunc-hash-placeholder", 0) * 2
     )
 
 def score_breakdown(counts):
@@ -278,6 +291,10 @@ def score_breakdown(counts):
         "resource-data-get": 0.25, "resource-data-set": 0.25,
         "env-default-func": 2, "schema-default-timeout": 1,
         "resource-diff-signature": 4, "helper-structure": 2,
+        "default-on-non-computed": 3, "force-new-on-computed": 3,
+        "typelist-maxitems1-without-elem": 3,
+        "optional-computed-without-usestateforunknown": 1,
+        "sensitive-statefunc-hash-placeholder": 2,
     }
     contribs = [(rid, counts.get(rid, 0) * w) for rid, w in weights.items()
                 if counts.get(rid, 0) > 0]
@@ -305,6 +322,11 @@ nmr_signals = {
     "resource-diff-signature":  "*schema.ResourceDiff function (port to ModifyPlan)",
     "helper-structure":         "helper/structure JSON normalisation (refactor to custom type or plan modifier)",
     "schema-set-cast":          "*schema.Set cast (TypeSet expansion → typed model)",
+    # Step-2 data-consistency signals — fix in SDKv2 form before migrating.
+    "optional-computed-without-usestateforunknown": "Optional+Computed without UseStateForUnknown (carry plan modifier across)",
+    "default-on-non-computed":  "Default without Computed (framework rejects at boot — add Computed in SDKv2 first)",
+    "force-new-on-computed":    "ForceNew + Computed (framework rejects at boot — fix in SDKv2 first)",
+    "sensitive-statefunc-hash-placeholder": "Sensitive + StateFunc hash-placeholder (migrate to WriteOnly)",
 }
 
 needs_review = []
@@ -319,6 +341,7 @@ SECTIONS = [
     ("Schema-level fields", ["force-new", "validate-func", "diff-suppress-func", "customize-diff", "state-func", "sensitive", "deprecated-attr", "schema-default", "cross-attr-constraint", "set-hash-func"]),
     ("Resource-level fields", ["importer", "import-state-passthrough", "timeouts", "state-upgraders", "schema-version", "migrate-state-legacy", "exists-callback"]),
     ("Block / nested-attribute decisions", ["max-items-1-nested-block", "nested-elem-resource", "min-items-positive", "type-collection-primitive-elem"]),
+    ("Step 2 — data-consistency (fix in SDKv2 first)", ["optional-computed-without-usestateforunknown", "default-on-non-computed", "force-new-on-computed", "typelist-maxitems1-without-elem", "sensitive-statefunc-hash-placeholder"]),
     ("Helper packages (need replacement)", ["retry-state-change-conf", "retry-retry-context", "customdiff-helper", "helper-validation", "helper-structure", "helper-acctest"]),
     ("CRUD-body shape", ["crud-context-fields", "schema-resource-data", "resource-constructor", "resource-diff-signature", "resource-data-id", "resource-data-get", "resource-data-set", "resource-data-change", "schema-set-cast", "diag-helpers", "schema-default-timeout"]),
     ("Provider-level wiring", ["resources-map", "data-sources-map", "configure-context-func", "schema-provider-type", "env-default-func"]),

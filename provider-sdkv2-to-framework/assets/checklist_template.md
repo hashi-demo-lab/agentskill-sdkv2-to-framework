@@ -2,10 +2,12 @@
 
 ## Pre-flight
 
-- [ ] Audit complete — artefact: `{{audit_file}}`
-- [ ] User has confirmed scope (whole provider? specific resources?)
+- [ ] Mux check — confirmed not a `terraform-plugin-mux` / multi-release / staged migration (Pre-flight 0)
+- [ ] Audit complete — artefact: `{{audit_file}}` (Pre-flight A)
+- [ ] User has confirmed scope (whole provider? specific resources?) (Pre-flight B)
 - [ ] Decision: protocol v5 or v6 (default v6 — see `references/protocol-versions.md`)
 - [ ] Files needing manual review have been read end-to-end
+- [ ] Per-resource think pass written for each audit-flagged resource (block decision / state upgrade / import shape) (Pre-flight C)
 - [ ] Test-side scope reviewed (see "Test-side migration scope" below — this is a provider-level prerequisite, not a per-resource step)
 
 ## Test-side migration scope

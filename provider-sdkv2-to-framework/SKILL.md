@@ -1,6 +1,6 @@
 ---
 name: provider-sdkv2-to-framework
-description: 'Use only when the source SDK is `terraform-plugin-sdk/v2`. Does NOT apply to SDK v1 (upgrade to v2 first), `terraform-plugin-go`-only providers, intra-framework version bumps, or any `terraform-plugin-mux` / multi-release / staged / phased migration. Use this skill whenever a user wants to move any Terraform resource, data source, or whole provider from `terraform-plugin-sdk/v2` to `terraform-plugin-framework` — including partial migrations of individual resources — even if they say "rewrite", "port", "convert", or describe the work without naming the SDKs explicitly. Triggers on phrases like "move this provider to the framework", "rewrite this resource using terraform-plugin-framework", "port this resource to plugin-framework". Single-release-cycle workflow with two pre-flight steps (audit + plan).'
+description: 'Use only when the source SDK is `terraform-plugin-sdk/v2`. Does NOT apply to SDK v1 (upgrade to v2 first), `terraform-plugin-go`-only providers, intra-framework version bumps, or any `terraform-plugin-mux` / multi-release / staged / phased migration. Use this skill whenever a user wants to move any Terraform resource, data source, or whole provider from `terraform-plugin-sdk/v2` to `terraform-plugin-framework` — including partial migrations of individual resources — even if they say "rewrite", "port", "convert", or describe the work without naming the SDKs explicitly. Triggers on phrases like "move this provider to the framework", "rewrite this resource using terraform-plugin-framework", "port this resource to plugin-framework". Single-release-cycle workflow with four pre-flight gates (mux check, audit, plan, per-resource think pass).'
 ---
 
 # SDKv2 → Plugin Framework migration
@@ -80,7 +80,7 @@ Run the bundled audit script to inventory the provider:
 bash <skill-path>/scripts/audit_sdkv2.sh <provider-repo-path>
 ```
 
-The script drives [semgrep](https://semgrep.dev) with the rules at `<skill-path>/scripts/audit_sdkv2.semgrep.yml` (AST-aware Go pattern matching). Output: per-rule summary table, per-file complexity ranking, and a "needs manual review" bucket flagging judgment-rich patterns (MaxItems:1, StateUpgraders, custom Importer, Timeouts, CustomizeDiff, StateFunc, DiffSuppressFunc, nested Elem, cross-attribute constraints) — read those files directly before proposing edits. Report shape is documented in `<skill-path>/assets/audit_template.md`.
+The script drives [semgrep](https://semgrep.dev) with the rules at `<skill-path>/scripts/audit_sdkv2.semgrep.yml` (AST-aware Go pattern matching). Output: per-rule summary table, per-file complexity ranking, and a "needs manual review" bucket flagging judgment-rich patterns (MaxItems:1, StateUpgraders, custom Importer, Timeouts, CustomizeDiff, StateFunc, DiffSuppressFunc, nested Elem, cross-attribute constraints) — read those files directly before proposing edits. The audit also flags step-2 data-consistency patterns (Optional+Computed without UseStateForUnknown, Default on non-Computed, ForceNew+Computed, hash-placeholder secret pattern) so the most-skipped HashiCorp step is detected at audit time rather than after migration.
 
 </workflow_step>
 
@@ -144,6 +144,7 @@ Pattern-driven lookup (read these only when the audit flagged the corresponding 
 | Adding identity for composite-ID resource | `references/identity.md` |
 | `Timeouts` field | `references/timeouts.md` |
 | `CustomizeDiff` (translate to `ModifyPlan`) | `references/plan-modifiers.md` |
+| `Computed` attribute that should keep prior-state value (no `(known after apply)` noise) — `UseStateForUnknown` / `UseNonNullStateForUnknown` | `references/plan-modifiers.md` |
 | `StateFunc` / `DiffSuppressFunc` (translate without mutating user input) | `references/state-and-types.md` + `references/plan-modifiers.md` |
 | `ConflictsWith` / `ExactlyOneOf` / `AtLeastOneOf` / `RequiredWith` | `references/validators.md` |
 | `Sensitive` attribute, possible WriteOnly migration | `references/sensitive-and-writeonly.md` |
@@ -166,6 +167,34 @@ The reason the order matters: switching block→attribute is *practitioner-visib
 ### State upgrader rule (the chain trap)
 
 SDKv2 chained upgraders (V0→V1→V2). Framework upgraders are **single-step** — each map entry keyed at a prior version produces the *current* schema's state directly in one call. Compose chains inline inside the V0 upgrader's body; don't call one upgrader from another. Full pattern with typed prior models, code samples, `tfsdk:` tag matching, and `ExternalProviders` test recipe: `references/state-upgrade.md`.
+
+<example name="state_upgrader_collapse">
+SDKv2 V0→V1→V2 chain (each link assumed the previous had run):
+
+```go
+// SDKv2
+SchemaVersion: 2,
+StateUpgraders: []schema.StateUpgrader{
+    {Version: 0, Type: ..., Upgrade: upgradeV0ToV1}, // chain link 1
+    {Version: 1, Type: ..., Upgrade: upgradeV1ToV2}, // chain link 2
+},
+```
+
+Framework — every map entry produces the *current* schema's state directly. The V0 entry must NOT delegate to V1's transform; compose the SDKv2 V0→V1 and V1→V2 logic inline inside V0's body so the result is V2-shaped state.
+
+```go
+// Framework — each entry stands alone, no chain
+func (r *thingResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+    return map[int64]resource.StateUpgrader{
+        0: {PriorSchema: priorSchemaV0(), StateUpgrader: upgradeFromV0}, // V0 → V2 directly
+        1: {PriorSchema: priorSchemaV1(), StateUpgrader: upgradeFromV1}, // V1 → V2 directly
+    }
+}
+```
+
+Anti-pattern (silent state corruption): `func upgradeFromV0(...) { ...; upgradeFromV1(...) }`. The framework calls each entry independently with the matching `PriorSchema`; state landing at V0 was never seen by V1's upgrader, so chaining either short-reads the V1 prior schema (panic) or writes V1-shaped state into a V2 schema (drift). Compose the two transformations *inline* inside V0's body instead — read V0 fields, transform to V2 fields, write V2 model.
+</example>
+
 
 <verification_gates>
 
@@ -206,6 +235,9 @@ If any gate fails, fix before moving on. Do not move past step 9 of the workflow
 - **`Description` and `MarkdownDescription` should not both be set with diverging content.** Set one and leave the other empty (the framework falls back), or set both to the same content. Diverging text drives docs drift between the JSON-rendered docs and Markdown-rendered docs.
 - **`ImportState` must handle both `req.ID` (legacy) and `req.Identity` (modern).** Branch on `req.ID == ""` to dispatch. `req.ID` is set for `terraform import myprov_thing FOO` (Terraform <1.12 or any CLI use); `req.Identity` is populated for the `import { identity = {...} }` block (Terraform 1.12+). Handling only one breaks either the CLI flow or the new HCL flow. See `references/identity.md`.
 - **Always flip `ProviderFactories:` → `ProtoV6ProviderFactories:` in the test file, even if `testAccProtoV6ProviderFactories` isn't yet wired at provider scope.** The compile failure ("undefined: testAccProtoV6ProviderFactories") is the TDD-red signal you want at step 7. Leaving the SDKv2 field is the most common silent regression — the test compiles against SDKv2 plumbing forever and step 9 (tests pass green) is unreachable without later coming back to flip it. If the symbol genuinely doesn't exist yet, declare a stub `testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){...}` in the test file or in `provider_test.go` and reference it; the stub fails at runtime with a clear "framework provider not configured" error rather than passing the SDKv2 path silently.
+- **Computed attributes need `UseStateForUnknown` (or `UseNonNullStateForUnknown`) unless the value really is recomputed each plan.** Without it, every plan shows `(known after apply)` for that field, which is noisy and can trigger spurious replacements in dependent resources. The most-missed case is `id` itself — every Computed `id` should have `UseStateForUnknown` unless it genuinely changes per plan. On Computed children inside a `SingleNestedAttribute`/`ListNestedAttribute`, prefer `UseNonNullStateForUnknown` (framework v1.17+) — `UseStateForUnknown` preserves prior nulls and can produce "Provider produced inconsistent result after apply" errors on those nested children.
+- **In a resource's `Configure` method, `req.ProviderData == nil` on the first RPCs.** The framework calls resource `Configure` on every RPC including `ValidateResourceConfig`, which runs *before* the provider's own `Configure`. On those early calls `ProviderData` is nil; type-asserting it panics. Always guard: `if req.ProviderData == nil { return }`. Same for data sources. Validators don't get `ProviderData` at all — don't reach for `r.client` from a validator; it'll be nil regardless.
+- **`SetNestedAttribute` cannot contain `WriteOnly` children.** The framework rejects this combination at provider boot (`ValidateImplementation`). If your secret lives inside a set-shaped attribute, restructure to `ListNestedAttribute` or `SingleNestedAttribute` before adding `WriteOnly`. Same trap on `SingleNestedAttribute`/`ListNestedAttribute`/`MapNestedAttribute`: if the *parent* is `WriteOnly`, every child must also be `WriteOnly` and none may be `Computed`.
 
 </common_pitfalls>
 

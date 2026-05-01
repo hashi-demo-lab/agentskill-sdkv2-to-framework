@@ -463,3 +463,153 @@ rules:
     languages: [go]
     severity: INFO
     message: "PreCheck: in test config — body usually references *schema.Provider plumbing that needs rewriting."
+
+  # ===========================================================================
+  # Step-2 data-consistency rules. workflow.md flags step 2 as the most-skipped;
+  # these are the four patterns the framework rejects at provider boot or
+  # surfaces as runtime "inconsistent result after apply" errors. Folded into
+  # the audit so a single audit run inventories them — no manual semgrep recipe
+  # required. (The recipes that used to live in workflow.md are these rules.)
+  # ===========================================================================
+
+  - id: optional-computed-without-usestateforunknown
+    # Optional+Computed attribute with no UseStateForUnknown plan modifier.
+    # Each plan re-computes the field, surfaces "(known after apply)", and may
+    # cascade unexpected replacements in dependent resources. SDKv2 silently
+    # tolerated this; the framework treats apply-time drift as a hard error.
+    #
+    # The pattern fires on the SDKv2 schema-block shape (Optional:true +
+    # Computed:true). Negation uses `pattern-not-regex` because semgrep's Go
+    # parser doesn't accept `[...]` as a slice-literal pattern; the regex is
+    # applied to the matched text, so a block containing
+    # `UseStateForUnknown(` (anywhere — typed or untyped, with or without
+    # qualifying package) is excluded.
+    patterns:
+      - pattern: |
+          {
+            ...,
+            Optional: true,
+            ...,
+            Computed: true,
+            ...,
+          }
+      - pattern-not-regex: '(?s)UseStateForUnknown\s*\('
+      - pattern-not-regex: '(?s)UseNonNullStateForUnknown\s*\('
+    languages: [go]
+    severity: INFO
+    message: "Optional+Computed without UseStateForUnknown — every plan shows '(known after apply)' and may trigger spurious replacements. Add stringplanmodifier.UseStateForUnknown() (or UseNonNullStateForUnknown for nested-attribute children, framework v1.17+)."
+
+  - id: default-on-non-computed
+    # The framework requires Computed: true on any attribute with a Default;
+    # rejected at provider boot via ValidateImplementation. SDKv2 didn't enforce.
+    patterns:
+      - pattern: |
+          {
+            ...,
+            Default: $X,
+            ...,
+          }
+      - pattern-not: |
+          {
+            ...,
+            Computed: true,
+            ...,
+            Default: $X,
+            ...,
+          }
+      - pattern-not: |
+          {
+            ...,
+            Default: $X,
+            ...,
+            Computed: true,
+            ...,
+          }
+    languages: [go]
+    severity: INFO
+    message: "Default without Computed:true — framework rejects this at boot (ValidateImplementation). Add Computed:true to the attribute."
+
+  - id: force-new-on-computed
+    # Pure Computed with ForceNew is invalid in the framework: a server-derived
+    # value can't drive replacement. Either the attribute is also Optional/Required
+    # (then RequiresReplace is fine on the user-supplied side) or this is a stale
+    # SDKv2 holdover that needs deleting. The framework rejects pure Computed +
+    # RequiresReplace at boot.
+    patterns:
+      - pattern: |
+          {
+            ...,
+            ForceNew: true,
+            ...,
+            Computed: true,
+            ...,
+          }
+      - pattern-not: |
+          {
+            ...,
+            Optional: true,
+            ...,
+            ForceNew: true,
+            ...,
+            Computed: true,
+            ...,
+          }
+      - pattern-not: |
+          {
+            ...,
+            Required: true,
+            ...,
+            ForceNew: true,
+            ...,
+            Computed: true,
+            ...,
+          }
+    languages: [go]
+    severity: INFO
+    message: "ForceNew on a pure-Computed attribute — framework rejects this at boot. Either make it Optional/Required (then RequiresReplace plan modifier is correct) or drop ForceNew."
+
+  - id: sensitive-statefunc-hash-placeholder
+    # SDKv2 idiom: Sensitive + StateFunc:hashString to keep a secret out of state.
+    # Migration cue — translates cleanly to WriteOnly: true (framework v1.14+),
+    # which is purpose-built for "Terraform doesn't need to read this back".
+    # See references/sensitive-and-writeonly.md.
+    pattern: |
+      {
+        ...,
+        Sensitive: true,
+        ...,
+        StateFunc: $F,
+        ...,
+      }
+    languages: [go]
+    severity: INFO
+    message: "Sensitive + StateFunc (the hash-placeholder pattern) — strong candidate for WriteOnly:true in the framework. See references/sensitive-and-writeonly.md."
+
+  - id: typelist-maxitems1-without-elem
+    # MaxItems:1 on a TypeList without a nested Elem &schema.Resource — SDKv2
+    # silently treated this as a no-op block. The framework's block-vs-attribute
+    # decision needs the nested type; without one the schema is meaningless.
+    # (Note: max-items-1-nested-block fires on the *with-Elem* case; this fires
+    # on the buggy *without-Elem* case as a step-2 data-consistency signal.)
+    patterns:
+      - pattern: |
+          {
+            ...,
+            Type: $PKG.TypeList,
+            ...,
+            MaxItems: 1,
+            ...,
+          }
+      - pattern-not: |
+          {
+            ...,
+            Type: $PKG.TypeList,
+            ...,
+            MaxItems: 1,
+            ...,
+            Elem: $E,
+            ...,
+          }
+    languages: [go]
+    severity: INFO
+    message: "TypeList + MaxItems:1 without Elem — meaningless in SDKv2, malformed in the framework. Add an Elem (and decide block-vs-attribute per references/blocks.md), or drop MaxItems."
