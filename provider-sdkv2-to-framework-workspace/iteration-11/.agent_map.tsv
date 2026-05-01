@@ -1,0 +1,7 @@
+a580a4ab19ab748ae	eval-inventory-only/with_skill
+a095dc0439fa68022	eval-linode-user/with_skill
+aebe8308e00b7a1fc	eval-linode-lke/with_skill
+a6c4c5c81b34276f4	eval-linode-objbucket/with_skill
+ab12fdc95fdec6cb2	eval-state-upgrade-objectstorage-container/with_skill
+aa3d68ac9a058bb0b	eval-chained-upgraders/with_skill
+af88369bde4c7fd79	eval-defaults-pitfall/with_skill

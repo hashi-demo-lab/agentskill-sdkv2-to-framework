@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+      "passed": true,
+      "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+    },
+    {
+      "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+      "passed": true,
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+    },
+    {
+      "text": "Uses timeouts.Block(...) directly OR delegates via TimeoutOpts to a base-resource helper that calls it (both preserve HCL block syntax)",
+      "passed": true,
+      "evidence": "matched: TimeoutOpts: &timeouts.Opts{"
+    },
+    {
+      "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
+      "passed": true,
+      "evidence": "ModifyPlan method present"
+    },
+    {
+      "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+      "passed": true,
+      "evidence": "matched: SizeAtMost(1)"
+    },
+    {
+      "text": "Sensitive: true preserved on at least one attribute",
+      "passed": true,
+      "evidence": "matched: Sensitive:   true"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

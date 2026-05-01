@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+      "passed": true,
+      "evidence": "matched 12/12; missing: []"
+    },
+    {
+      "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+      "passed": true,
+      "evidence": "matched: test-file counts of SDKv2 patterns plus any \"Shared"
+    },
+    {
+      "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+      "passed": true,
+      "evidence": "matched: data consistency"
+    },
+    {
+      "text": "The audit report identifies at least one file under 'needs manual review'",
+      "passed": true,
+      "evidence": "matched: Needs manual review"
+    },
+    {
+      "text": "No source files in the provider clone have been modified (git status clean)",
+      "passed": true,
+      "evidence": "clean"
+    },
+    {
+      "text": "The produced inventory artefact is under 100 KB",
+      "passed": true,
+      "evidence": "audit_report.md = 36685 bytes (cap 100000)"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}
