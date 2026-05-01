@@ -23,7 +23,7 @@
     {
       "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
       "passed": true,
-      "evidence": "matched: SingleNestedBlock"
+      "evidence": "matched: SizeAtMost(1)"
     },
     {
       "text": "Migrated file is syntactically valid Go",

@@ -1,29 +1,34 @@
 {
   "expectations": [
     {
-      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
       "passed": true,
       "evidence": "sdkv2 import absent"
     },
     {
-      "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) \u2014 Metadata/Schema may be supplied via embedded base type per Linode convention",
+      "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
       "passed": true,
-      "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
+      "evidence": "found 6/6: ['Metadata', 'Schema', 'Create', 'Read', 'Update', 'Delete']"
     },
     {
-      "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)",
+      "text": "Implements ResourceWithUpgradeState (UpgradeState method present)",
       "passed": true,
-      "evidence": "matched: Default:     booldefault."
+      "evidence": "matched: func (r *objectStorageContainerV1Resource) UpgradeState("
     },
     {
-      "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)",
+      "text": "Each StateUpgrader entry has a PriorSchema field set",
       "passed": true,
-      "evidence": "absent"
+      "evidence": "matched: PriorSchema:"
     },
     {
-      "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
+      "text": "Notes mention single-step / target / current semantics (not chained)",
       "passed": true,
-      "evidence": "matched: SingleNestedBlock"
+      "evidence": "matched: Single-step"
+    },
+    {
+      "text": "schema.Schema.Version is set on the migrated resource",
+      "passed": true,
+      "evidence": "matched: schema.Schema{\n\t\tVersion: 1"
     },
     {
       "text": "Migrated file is syntactically valid Go",
@@ -52,9 +57,9 @@
     }
   ],
   "summary": {
-    "passed": 10,
+    "passed": 11,
     "failed": 0,
-    "total": 10,
+    "total": 11,
     "pass_rate": 1.0
   }
 }

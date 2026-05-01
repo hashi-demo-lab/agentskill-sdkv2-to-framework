@@ -77,7 +77,7 @@ The reason: a green test on a migrated resource means very little if the test wa
 
 #### Concrete procedure (do not skip any sub-step)
 
-1. Edit the test file: switch `ProviderFactories` → `ProtoV6ProviderFactories`, swap any SDKv2 helpers (see `testing.md`). **If no test exists for the resource, write a minimal one before proceeding** — never skip the gate.
+1. Edit the test file: switch `ProviderFactories` → `ProtoV6ProviderFactories`, swap any SDKv2 helpers (see `testing.md`). **If no test exists for the resource, write a minimal one before proceeding** — never skip the gate. **The flip is required even if `testAccProtoV6ProviderFactories` isn't yet defined provider-wide** — the resulting compile error ("undefined: testAccProtoV6ProviderFactories") is exactly the TDD-red signal step 7 wants. Keeping `ProviderFactories:` because "the framework factory doesn't exist yet" is a silent regression: the test stays SDKv2-shaped and step 9 (tests pass green) becomes unreachable without later returning to flip it.
 2. Run: `go test -run '^TestAcc<ResourceName>_basic$' ./... 2>&1 | tail -30` (or the unit-test name if no acceptance tests).
 3. **Quote the failing output verbatim** in the per-resource checklist row. Acceptable failure shapes:
    - Compile error citing an SDKv2 type that no longer exists (e.g. `undefined: schema.Provider`).
