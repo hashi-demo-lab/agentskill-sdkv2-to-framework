@@ -1,0 +1,87 @@
+{
+  "skill_name": "provider-sdkv2-to-framework",
+  "model": "claude-sonnet-4-6",
+  "date": "2026-05-01T04:28:15.752570+00:00",
+  "evals": 6,
+  "runs_per_config": 1,
+  "configurations": [
+    "with_skill"
+  ],
+  "totals": {
+    "passed": 39,
+    "total": 39,
+    "tokens": 509482
+  },
+  "vs_iteration_9": {
+    "tokens_delta_pct": -1.44,
+    "pass_delta": 0.0
+  },
+  "runs": [
+    {
+      "eval_name": "eval-chained-upgraders",
+      "configuration": "with_skill",
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "total": 8,
+        "tokens": 27770,
+        "time_seconds": 89.6
+      }
+    },
+    {
+      "eval_name": "eval-defaults-pitfall",
+      "configuration": "with_skill",
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "total": 4,
+        "tokens": 57415,
+        "time_seconds": 390.0
+      }
+    },
+    {
+      "eval_name": "eval-linode-lke",
+      "configuration": "with_skill",
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "total": 8,
+        "tokens": 164623,
+        "time_seconds": 1002.8
+      }
+    },
+    {
+      "eval_name": "eval-linode-objbucket",
+      "configuration": "with_skill",
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "total": 6,
+        "tokens": 117830,
+        "time_seconds": 670.3
+      }
+    },
+    {
+      "eval_name": "eval-linode-user",
+      "configuration": "with_skill",
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "total": 6,
+        "tokens": 67846,
+        "time_seconds": 329.8
+      }
+    },
+    {
+      "eval_name": "eval-state-upgrade-objectstorage-container",
+      "configuration": "with_skill",
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "total": 7,
+        "tokens": 73998,
+        "time_seconds": 405.8
+      }
+    }
+  ]
+}

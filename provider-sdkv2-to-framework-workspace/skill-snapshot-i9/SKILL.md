@@ -130,28 +130,31 @@ Do not start editing the file until that summary exists. Skipping this is the mo
 
 For per-step "do not skip" notes, read `references/workflow.md`. Consult `references/deprecations.md` before emitting any new symbol — it lists removed/renamed APIs you might emit by mistake.
 
-## Reference index — load on need, not on principle
+## Reference index — open on demand
 
-**Frugal rule.** Most resources need ≤2 references; many need zero. The audit's "needs manual review" bucket is the gate — load only references that map to patterns it flagged. A simple resource (no `MaxItems:1`, no state upgrader, no custom importer, no `Timeouts`, no `CustomizeDiff`, no `Sensitive`/write-only) typically needs no references at all; the workflow above plus your training knowledge of `terraform-plugin-framework` is enough. Each reference is 1–3k tokens; pre-loading 6 of them just-in-case adds 10–15k tokens for no benefit.
+Each reference file opens with a 5-bullet summary so you can pull a quick lookup without reading the whole file. Open only what you need:
 
-Pattern-driven lookup (read these only when the audit flagged the corresponding pattern):
-
-| Audit flag / pattern present | Read |
+| You're working on… | Read |
 |---|---|
-| `MaxItems: 1` block (block-vs-attribute decision) | `references/blocks.md` |
-| `StateUpgraders` / `SchemaVersion > 0` | `references/state-upgrade.md` |
-| Custom `Importer` (composite ID parsing) | `references/import.md` |
-| Adding identity for composite-ID resource | `references/identity.md` |
-| `Timeouts` field | `references/timeouts.md` |
-| `CustomizeDiff` (translate to `ModifyPlan`) | `references/plan-modifiers.md` |
-| `StateFunc` / `DiffSuppressFunc` (translate without mutating user input) | `references/state-and-types.md` + `references/plan-modifiers.md` |
-| `ConflictsWith` / `ExactlyOneOf` / `AtLeastOneOf` / `RequiredWith` | `references/validators.md` |
-| `Sensitive` attribute, possible WriteOnly migration | `references/sensitive-and-writeonly.md` |
-| `ResourceWithMoveState` (rename / split / cross-provider) | `references/move-state.md` |
-
-Provider-level (vs resource-only) migrations also need: `references/provider.md` (provider type, `Configure`, client plumbing), `references/schema.md` (top-level schema), `references/protocol-versions.md` (`main.go` swap to v6), `references/compatibility.md` (framework feature/version floor), `references/testing.md` (`ProtoV6ProviderFactories`, `ImportStateVerify`, etc.).
-
-Other references (consult only on specific need): `references/resources.md` (full CRUD shape — usually unnecessary), `references/attributes.md` (primitive/nested attribute types), `references/data-sources.md` (only for data-source migrations), `references/workflow.md` (per-step "do not skip" notes), `references/deprecations.md` (reactive — consult only when a build error names a removed SDKv2 symbol).
+| Provider schema, resource schema, data-source schema | `references/schema.md` |
+| The provider type itself (`provider.Provider`, `Metadata`, `Resources`, `DataSources`) | `references/provider.md` |
+| Provider configuration & client plumbing (`Configure`, `req.ProviderData`, type-asserting `*Client`) | `references/provider.md` |
+| Resource CRUD methods (`Create`, `Read`, `Update`, `Delete`) | `references/resources.md` |
+| Data sources (`datasource.DataSource`, `Read`) | `references/data-sources.md` |
+| Primitive and nested attribute types (`StringAttribute`, `ListNestedAttribute`, `SingleNestedAttribute`) | `references/attributes.md` |
+| When to use a block vs a nested attribute (incl. `MaxItems: 1` → single nested attribute) | `references/blocks.md` |
+| Validators (`ValidateFunc` / `ValidateDiagFunc` → `Validators`, plus `terraform-plugin-framework-validators`) | `references/validators.md` |
+| Plan modifiers (`ForceNew` → `RequiresReplace`; **`UseStateForUnknown`** for computed-after-apply attributes) **AND defaults** (`stringdefault.StaticString` etc. — `Default` is its own package now, not a plan modifier) | `references/plan-modifiers.md` |
+| Reading from / writing to state (`d.Get` → `req.Plan.Get`, `d.Set` → `resp.State.Set`, `types.String`/`Int64`/...) and `basetypes` / custom types | `references/state-and-types.md` |
+| Schema versions and state upgraders (`SchemaVersion` + `StateUpgraders` → `ResourceWithUpgradeState`) | `references/state-upgrade.md` |
+| Resource renames, splits, or cross-provider moves (`ResourceWithMoveState`) | `references/move-state.md` |
+| Resource import (`Importer` / `ImportStatePassthroughContext` → `ResourceWithImportState.ImportState`) | `references/import.md` |
+| Resource identity (composite-ID resources — framework's modern alternative to manual import-string parsing; `ResourceWithIdentity`, `identityschema`, `ImportStatePassthroughWithIdentity`) | `references/identity.md` |
+| Timeouts (`schema.ResourceTimeout` → `terraform-plugin-framework-timeouts` package) | `references/timeouts.md` |
+| `Sensitive`, write-only attributes | `references/sensitive-and-writeonly.md` |
+| Protocol v5 vs v6 selection, `providerserver.NewProtocol6WithError`, `main.go` swap | `references/protocol-versions.md` |
+| Acceptance tests (`ProtoV6ProviderFactories`, `TestProvider`/`InternalValidate`, `ImportStateVerify`, `PlanOnly`, `ConfigStateChecks`, `r.Test` vs `r.UnitTest`, TDD ordering) | `references/testing.md` |
+| Framework version-floor for any feature (Int32, identity, WriteOnly, UseNonNullStateForUnknown, etc.) | `references/compatibility.md` |
 
 ### Block-vs-attribute decision (`MaxItems: 1`)
 

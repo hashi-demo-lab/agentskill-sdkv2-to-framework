@@ -11,29 +11,19 @@
       "evidence": "found 4/4: ['Create', 'Read', 'Update', 'Delete']"
     },
     {
-      "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+      "text": "Default fields use the framework's per-type *default package (booldefault, stringdefault, etc.)",
       "passed": true,
-      "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+      "evidence": "matched: Default:     booldefault."
     },
     {
-      "text": "Uses timeouts.Block(...) directly OR delegates via TimeoutOpts to a base-resource helper that calls it (both preserve HCL block syntax)",
+      "text": "No Default value appears inside any PlanModifiers slice (documented pitfall)",
       "passed": true,
-      "evidence": "matched: timeouts.Block ("
-    },
-    {
-      "text": "Implements ResourceWithModifyPlan (CustomizeDiff \u2192 ModifyPlan)",
-      "passed": true,
-      "evidence": "ModifyPlan method present"
+      "evidence": "absent"
     },
     {
       "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)",
       "passed": true,
       "evidence": "matched: SingleNestedBlock"
-    },
-    {
-      "text": "Sensitive: true preserved on at least one attribute",
-      "passed": true,
-      "evidence": "matched: Sensitive: true"
     },
     {
       "text": "Migrated file is syntactically valid Go",
@@ -42,9 +32,9 @@
     }
   ],
   "summary": {
-    "passed": 8,
+    "passed": 6,
     "failed": 0,
-    "total": 8,
+    "total": 6,
     "pass_rate": 1.0
   }
 }

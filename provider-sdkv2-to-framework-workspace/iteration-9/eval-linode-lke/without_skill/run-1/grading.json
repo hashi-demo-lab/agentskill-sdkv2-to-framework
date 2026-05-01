@@ -16,7 +16,7 @@
       "evidence": "imports github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
     },
     {
-      "text": "Uses timeouts.Block(...) (preserves HCL block syntax)",
+      "text": "Uses timeouts.Block(...) directly OR delegates via TimeoutOpts to a base-resource helper that calls it (both preserve HCL block syntax)",
       "passed": true,
       "evidence": "matched: timeouts.Block("
     },

@@ -787,10 +787,10 @@
         {"type": "no_sdkv2_import", "text": "Migrated file no longer imports terraform-plugin-sdk/v2", "file": "migrated/resource.go"},
         {"type": "has_methods", "text": "Implements resource.Resource CRUD (Create, Read, Update, Delete) — Metadata/Schema may be supplied via embedded base type per Linode convention", "file": "migrated/resource.go", "methods": ["Create", "Read", "Update", "Delete"]},
         {"type": "imports_package", "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts", "file": "migrated/resource.go", "package": "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"},
-        {"type": "regex", "text": "Uses timeouts.Block(...) directly OR delegates via TimeoutOpts to a base-resource helper that calls it (both preserve HCL block syntax)", "files": ["migrated/resource.go", "migrated/schema_resource.go"], "pattern": "(timeouts\\.Block\\s*\\(|TimeoutOpts\\s*:\\s*&?\\s*timeouts\\.Opts\\s*\\{)"},
+        {"type": "regex", "text": "Uses timeouts.Block(...) (preserves HCL block syntax)", "file": "migrated/resource.go", "pattern": "timeouts\\.Block\\s*\\("},
         {"type": "has_method", "text": "Implements ResourceWithModifyPlan (CustomizeDiff → ModifyPlan)", "file": "migrated/resource.go", "method": "ModifyPlan"},
-        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "files": ["migrated/resource.go", "migrated/schema_resource.go"], "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
-        {"type": "regex", "text": "Sensitive: true preserved on at least one attribute", "files": ["migrated/resource.go", "migrated/schema_resource.go"], "pattern": "Sensitive\\s*:\\s*true"},
+        {"type": "regex", "text": "MaxItems:1 block expressed as SingleNestedAttribute, SingleNestedBlock, or any list/set with SizeAtMost(1)", "file": "migrated/resource.go", "pattern": "(SingleNestedAttribute|SingleNestedBlock|SizeAtMost\\s*\\(\\s*1\\s*\\))"},
+        {"type": "regex", "text": "Sensitive: true preserved on at least one attribute", "file": "migrated/resource.go", "pattern": "Sensitive\\s*:\\s*true"},
         {"type": "syntax_valid", "text": "Migrated file is syntactically valid Go", "file": "migrated/resource.go"}
       ]
     },
