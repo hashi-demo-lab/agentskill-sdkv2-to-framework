@@ -317,29 +317,88 @@ else:
     print("_None — the provider has no patterns that require special migration handling._")
 print()
 
+# -- Shared test infrastructure detection --
+# Files that hold provider-level test plumbing (TestAccProvider, factories,
+# Meta-derived helpers). Per-resource test migration depends on these.
+# Heuristic: path-based — common conventions across providers. We walk the
+# filesystem (not the per-file rule hits) because shared-infra files often
+# define types/vars that semgrep can't reliably match in standalone-type
+# position (e.g. `var testAccProvider *schema.Provider` doesn't match the
+# `*$PKG.Provider` pattern without surrounding context).
+import re
+SHARED_TEST_PATH_PATTERNS = [
+    re.compile(r'(^|/)acceptance/[^/]+\.go$'),       # Linode, AzureRM
+    re.compile(r'(^|/)testutil/[^/]+\.go$'),         # common
+    re.compile(r'(^|/)internal/test/[^/]+\.go$'),    # internal-package convention
+    re.compile(r'(^|/)helper/test[^/]*\.go$'),       # helper/test*.go
+    re.compile(r'(^|/)provider_test\.go$'),          # TestProvider host
+    re.compile(r'(^|/)acceptance_test\.go$'),        # alt host
+    re.compile(r'(^|/)common_test\.go$'),            # alt host
+    re.compile(r'(^|/)test_helpers?\.go$'),          # helpers
+    re.compile(r'(^|/)testing/[^/]+\.go$'),          # alt convention
+]
+def is_shared_test_infra(path):
+    return any(p.search(path) for p in SHARED_TEST_PATH_PATTERNS)
+
+# Walk the repo to find every candidate shared-infra file, regardless of
+# whether any rule fired in it. This is the authoritative list.
+shared_infra_paths = []
+for root, dirs, files in os.walk(repo):
+    # Skip vendor/ and .git/.
+    dirs[:] = [d for d in dirs if d not in ('vendor', '.git')]
+    for fn in files:
+        if not fn.endswith('.go'):
+            continue
+        full = os.path.join(root, fn)
+        rel = os.path.relpath(full, repo)
+        if is_shared_test_infra(rel):
+            shared_infra_paths.append(rel)
+
+# Decorate with rule-hit counts (zero if the file had no findings).
+shared_infra = []
+for path in shared_infra_paths:
+    counts = dict(per_file.get(path, {}))
+    counts.update(dict(test_per_file.get(path, {})))
+    total = sum(counts.values())
+    shared_infra.append((path, total, counts))
+shared_infra.sort(key=lambda x: -x[1])
+
 # -- Test-file findings --
 print("## Test-file findings\n")
 if test_files == 0:
     print("_No `*_test.go` files in the repo._\n")
 else:
     test_total = sum(test_rule_totals.values())
-    if test_total == 0:
+    if test_total == 0 and not shared_infra:
         print(f"_Scanned {test_files} test files; no migration-relevant patterns detected._\n")
     else:
-        print(f"Scanned {test_files} test files. Test migration is part of step 7 (TDD gate) — these patterns must be translated alongside the production-code migration:\n")
-        for rid in TEST_RULES:
-            count = test_rule_totals.get(rid, 0)
-            if count > 0 and rid in RULE_LABELS:
-                print(f"- {RULE_LABELS[rid]}: **{count}**")
-        # Top test files by total findings.
-        ranked_tests = sorted(test_per_file.items(), key=lambda x: -sum(x[1].values()))[:10]
-        if ranked_tests:
+        print(f"Scanned {test_files} test files. Test migration is a **provider-level prerequisite** — per-resource test rewrites (workflow step 7) cannot succeed until shared test plumbing has a framework path. Plan this work *before* touching per-resource tests.\n")
+        if test_total > 0:
+            for rid in TEST_RULES:
+                count = test_rule_totals.get(rid, 0)
+                if count > 0 and rid in RULE_LABELS:
+                    print(f"- {RULE_LABELS[rid]}: **{count}**")
             print()
-            print("Top 10 test files by SDKv2-pattern count:")
+
+        # Shared test infrastructure (provider-level prerequisites).
+        if shared_infra:
+            print("### Shared test infrastructure (migrate first — per-resource tests depend on these)\n")
+            print("Files matching test-infra path conventions (acceptance/, testutil/, provider_test.go, etc.). Every migrated test file references something here; flipping ProviderFactories per resource is wasted effort if the factory isn't framework-aware yet.\n")
+            for path, total, counts in shared_infra[:15]:
+                non_zero = [f"{rid}={n}" for rid, n in sorted(counts.items()) if n > 0]
+                print(f"- `{path}` — {total} pattern hits ({', '.join(non_zero) if non_zero else '0'})")
+            print()
+
+        # Top per-resource test files by total findings.
+        ranked_tests = sorted(test_per_file.items(), key=lambda x: -sum(x[1].values()))
+        # Drop shared-infra files from the per-resource list so the ranking is honest.
+        ranked_tests = [(p, c) for p, c in ranked_tests if not is_shared_test_infra(p)][:10]
+        if ranked_tests:
+            print("### Top 10 per-resource test files by SDKv2-pattern count\n")
             for path, counts in ranked_tests:
                 total = sum(counts.values())
-                print(f"  - {path}: {total} patterns")
-        print()
+                print(f"- `{path}`: {total} patterns")
+            print()
 
 print("## Next steps\n")
 print("1. Read every file listed under 'Needs manual review' before proposing edits.")

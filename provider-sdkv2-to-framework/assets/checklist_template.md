@@ -6,6 +6,35 @@
 - [ ] User has confirmed scope (whole provider? specific resources?)
 - [ ] Decision: protocol v5 or v6 (default v6 — see `references/protocol-versions.md`)
 - [ ] Files needing manual review have been read end-to-end
+- [ ] Test-side scope reviewed (see "Test-side migration scope" below — this is a provider-level prerequisite, not a per-resource step)
+
+## Test-side migration scope
+
+The audit report's "Test-file findings" section lists per-test-file counts of SDKv2 patterns plus any "Shared test infrastructure" files it identified. Test migration is a **provider-level prerequisite** — per-resource test rewriting (workflow step 7) cannot succeed until shared test plumbing has a framework-side path.
+
+### Shared test infrastructure
+
+List the files the audit flagged as shared test infrastructure (typically under `acceptance/`, `testutil/`, `internal/test/`, or files like `provider_test.go`). These hold globals like `TestAccProvider`, `testAccProvider`, `testAccProviders`, `TestAccProtoV6ProviderFactories`, helper functions like `GetTestClient()`, `Meta()`-derived accessors. Migrate these *first*; per-resource test rewrites depend on them.
+
+- {{shared_test_helper_path_1}} — purpose:
+- {{shared_test_helper_path_2}} — purpose:
+- {{shared_test_helper_path_3}} — purpose:
+- [ ] Framework provider factory wired up (e.g. `testAccProtoV6ProviderFactories = map[string]func()(...){...}` using `providerserver.NewProtocol6WithError(NewFrameworkProvider())`)
+- [ ] Shared `TestAccProvider`/`testAccProvider` references migrated to the framework provider, OR proxied via `terraform-plugin-mux` for a transitional period (note: this skill's scope is single-release; muxing is out of scope)
+- [ ] Test-side client/meta accessors migrated (`acceptance.GetTestClient()`, `Meta()`-derived helpers) — many references in per-resource tests will break until these land
+
+### Test-side counts (from audit)
+
+- Test files audited: {{test_file_count}}
+- `ProviderFactories` references to flip → `ProtoV6ProviderFactories`: {{test_provider_factories_count}}
+- `resource.Test`/`UnitTest`/`ParallelTest` calls (must use `terraform-plugin-testing/helper/resource`): {{test_resource_test_count}}
+- `*schema.ResourceData` and `d.X` calls in tests (rare; usually inside helper functions): {{test_d_calls_count}}
+
+### Test-side negative gate (run at workflow step 11)
+
+- [ ] No surviving `terraform-plugin-sdk/v2/helper/resource` imports in any `*_test.go`
+- [ ] No surviving `terraform-plugin-sdk/v2/terraform` imports in any `*_test.go`
+- [ ] No `*schema.Provider`/`*schema.ResourceData` references in test files
 
 ## HashiCorp single-release-cycle steps
 
