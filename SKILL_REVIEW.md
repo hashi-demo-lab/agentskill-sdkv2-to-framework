@@ -1,6 +1,6 @@
-# SKILL.md review — `sdkv2-to-framework`
+# SKILL.md review — `provider-sdkv2-to-framework`
 
-**Target**: `/Users/simon.lynch/git/agentskill-sdkv2-to-framework/sdkv2-to-framework/SKILL.md` (234 lines, 19.5 KB)
+**Target**: `<repo>/provider-sdkv2-to-framework/SKILL.md` (234 lines, 19.5 KB at time of review; pre-`provider-` prefix the directory was named `sdkv2-to-framework`)
 **Reviewers**: 3 concurrent Opus agents — structural/authoring, content effectiveness, triggering surface
 **Method**: critique against Anthropic's canonical skill-authoring guidance, cited inline below.
 
@@ -167,11 +167,12 @@ After the P0+P1 fixes the file should land at ~170 lines (well under Anthropic's
 - **Anthropic rule**: **[BP §"Avoid deeply nested references": "Keep references one level deep from SKILL.md."]** Already one-level, so this is acceptable as-is — but **[BP §"Concise is key"]** suggests pushing procedure detail down once load-bearing framing stays inline.
 - **Fix**: Optional. Defer until after P0/P1 work — reduces tokens but the inline procedure is also genuinely useful where it sits.
 
-### P2-10 — Name `sdkv2-to-framework` not in preferred gerund form
+### P2-10 — Name not in preferred gerund form *(partial follow-up: provider-prefix added)*
 - **Location**: line 2
 - **Anthropic rule**: **[BP §"Naming conventions": "Consider using gerund form (verb + -ing) for Skill names, as this clearly describes the activity or capability the Skill provides. Good naming examples (gerund form): processing-pdfs, analyzing-spreadsheets, managing-databases."]** The doc explicitly lists `pdf-processing` (noun phrase) as an "Acceptable alternative", so the current name is *acceptable* — but not preferred.
 - **Issue**: `sdkv2-to-framework` is a noun phrase. Per Anthropic's preference, gerund form would trigger and disambiguate better, especially against any peer skill named `framework-migration` (Spring/Vue/Django/etc.) — the "terraform" anchor is also missing.
-- **Fix**: Optional rename to `migrating-terraform-sdkv2` or `migrating-sdkv2-to-framework`. Costs a directory rename and any path references — defer until other fixes are settled.
+- **Original fix proposal**: Optional rename to `migrating-terraform-sdkv2` or `migrating-sdkv2-to-framework`. Costs a directory rename and any path references — defer until other fixes are settled.
+- **Follow-up taken**: skill renamed to `provider-sdkv2-to-framework` to scope it to the Terraform-provider domain (the originally-missing anchor) without committing to a gerund form. The gerund-form rename remains open as a future refinement if this skill ever competes with another `provider-*` migration skill.
 
 ### P2-11 (new) — No copy-able workflow checklist
 - **Location**: lines 41–94 (12 + 2 pre-flight steps)

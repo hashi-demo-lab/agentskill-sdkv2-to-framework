@@ -1,0 +1,14 @@
+{
+  "eval_id": 3,
+  "eval_name": "eval-resource-keypair",
+  "prompt": "Migrate the resource defined in <openstack-clone>/openstack/resource_openstack_compute_keypair_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file (resource_openstack_compute_keypair_v2_test.go). Don't migrate anything else in the repo.",
+  "expectations": [
+    "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+    "The migrated file implements resource.Resource (at least Metadata, Schema, Create, Read, Update, Delete methods are present)",
+    "Every attribute that had ForceNew: true in SDKv2 now has stringplanmodifier.RequiresReplace() (or the appropriate kind-typed equivalent) in PlanModifiers",
+    "Validators are translated from ValidateFunc/ValidateDiagFunc into the Validators slice using terraform-plugin-framework-validators",
+    "User-facing schema attribute names are unchanged from the SDKv2 version",
+    "go build ./... passes against <clone-path>",
+    "TestProvider passes"
+  ]
+}

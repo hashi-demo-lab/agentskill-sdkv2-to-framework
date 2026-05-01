@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "eval-data-source-availability-zones",
+  "prompt": "Migrate the data source defined in <openstack-clone>/openstack/data_source_openstack_blockstorage_availability_zones_v3.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file. Don't migrate anything else in the repo.",
+  "expectations": [
+    "The migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+    "The migrated file implements datasource.DataSource (Metadata, Schema, Read methods are present)",
+    "The migrated file uses the datasource/schema package, not the resource/schema package",
+    "User-facing schema attribute names are unchanged from the SDKv2 version",
+    "go build ./... passes against <clone-path>",
+    "TestProvider passes (provider boots, schema is internally valid)"
+  ]
+}

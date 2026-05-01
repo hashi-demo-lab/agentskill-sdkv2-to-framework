@@ -1,0 +1,775 @@
+{
+  "skill_name": "provider-sdkv2-to-framework",
+  "schema_version": 2,
+  "evals": [
+    {
+      "id": 1,
+      "name": "eval-inventory-only",
+      "prompt": "I'm planning a SDKv2 → framework migration of the Terraform provider at <clone-path>. Don't change any code yet — give me an inventory and a phased migration checklist that I can review with my team before we start editing.",
+      "expected_output": "An audit report (per-file counts table + needs-manual-review bucket) and a populated migration checklist that enumerates all 12 HashiCorp single-release-cycle steps verbatim. No source files in the repo are modified.",
+      "files": [],
+      "checks": [
+        {
+          "type": "phrases_present",
+          "text": "Migration checklist enumerates all 12 single-release-cycle steps with text matching HashiCorp's verbatim titles",
+          "file": "migration_checklist.md",
+          "phrases": [
+            "sufficient test coverage", "data consistency", "via the framework", "provider definition",
+            "provider schema", "resources, data sources, and other Terraform",
+            "tests to use the framework, and ensure that the tests fail",
+            "Migrate the resource or data source", "tests now pass",
+            "remaining references to SDKv2", "all of your tests continue to pass",
+            "release a new version"
+          ]
+        },
+        {
+          "type": "regex",
+          "text": "Step 7 of the checklist explicitly notes that tests are written/updated first and run red before code changes (TDD ordering)",
+          "file": "migration_checklist.md",
+          "pattern": "(fail|red).{0,80}(test|tdd).{0,200}|(test|tdd).{0,80}(fail|red)",
+          "flags": ["i"]
+        },
+        {
+          "type": "regex",
+          "text": "Step 2 (review for SDKv2 data-consistency errors) is present in the checklist",
+          "file": "migration_checklist.md",
+          "pattern": "data.consistency",
+          "flags": ["i"]
+        },
+        {
+          "type": "regex",
+          "text": "The audit report identifies at least one file under 'needs manual review'",
+          "file": "audit_report.md",
+          "pattern": "(needs.manual.review|manual.review|requires.review)",
+          "flags": ["i"]
+        },
+        {
+          "type": "clone_clean",
+          "text": "No source files in the provider clone have been modified (git status clean)"
+        },
+        {
+          "type": "file_size_under",
+          "text": "The produced inventory artefact is under 100 KB",
+          "file": "audit_report.md",
+          "max_bytes": 100000
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "eval-data-source-availability-zones",
+      "prompt": "Migrate the data source defined in <clone-path>/openstack/data_source_openstack_blockstorage_availability_zones_v3.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "A migrated data source implementing the framework's datasource.DataSource interface, a typed model struct with tfsdk tags, and an updated test file using ProtoV6ProviderFactories.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "file": "migrated/data_source_openstack_blockstorage_availability_zones_v3.go"
+        },
+        {
+          "type": "has_methods",
+          "text": "Migrated file implements datasource.DataSource (Metadata, Schema, Read methods)",
+          "file": "migrated/data_source_openstack_blockstorage_availability_zones_v3.go",
+          "methods": ["Metadata", "Schema", "Read"]
+        },
+        {
+          "type": "imports_package",
+          "text": "Uses datasource/schema package, not resource/schema",
+          "file": "migrated/data_source_openstack_blockstorage_availability_zones_v3.go",
+          "package": "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+        },
+        {
+          "type": "regex",
+          "text": "Does NOT import resource/schema (datasource files use the datasource/schema package)",
+          "file": "migrated/data_source_openstack_blockstorage_availability_zones_v3.go",
+          "pattern": "terraform-plugin-framework/resource/schema\"",
+          "expect": "absent"
+        },
+        {
+          "type": "attrs_preserved",
+          "text": "User-facing schema attribute names are unchanged from the SDKv2 version",
+          "original_file": "openstack/data_source_openstack_blockstorage_availability_zones_v3.go",
+          "migrated_file": "migrated/data_source_openstack_blockstorage_availability_zones_v3.go"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go (gofmt -e clean)",
+          "file": "migrated/data_source_openstack_blockstorage_availability_zones_v3.go"
+        },
+        {
+          "type": "imports_whitelist",
+          "text": "Imports are confined to known framework / SDKv2 / openstack / stdlib paths",
+          "files": ["migrated/data_source_openstack_blockstorage_availability_zones_v3.go"],
+          "allowed": [
+            "github.com/hashicorp/terraform-plugin-framework",
+            "github.com/hashicorp/terraform-plugin-framework-validators",
+            "github.com/hashicorp/terraform-plugin-framework-timeouts",
+            "github.com/hashicorp/terraform-plugin-go",
+            "github.com/hashicorp/terraform-plugin-log",
+            "github.com/gophercloud/gophercloud",
+            "github.com/terraform-provider-openstack/"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "eval-resource-keypair",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_compute_keypair_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file (resource_openstack_compute_keypair_v2_test.go). Don't migrate anything else in the repo.",
+      "expected_output": "A migrated resource implementing resource.Resource with ForceNew→RequiresReplace plan modifiers and ValidateFunc→Validators slice translations.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_compute_keypair_v2.go"
+        },
+        {
+          "type": "has_methods",
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "file": "migrated/resource_openstack_compute_keypair_v2.go",
+          "methods": ["Metadata", "Schema", "Create", "Read", "Update", "Delete"]
+        },
+        {
+          "type": "regex",
+          "text": "Every ForceNew attribute has a corresponding RequiresReplace plan modifier",
+          "file": "migrated/resource_openstack_compute_keypair_v2.go",
+          "pattern": "RequiresReplace\\s*\\("
+        },
+        {
+          "type": "attrs_preserved",
+          "text": "User-facing schema attribute names are unchanged",
+          "original_file": "openstack/resource_openstack_compute_keypair_v2.go",
+          "migrated_file": "migrated/resource_openstack_compute_keypair_v2.go"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_compute_keypair_v2.go"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "eval-maxitems1-block",
+      "prompt": "Migrate just the schema (not the CRUD methods, not the tests) of the resource defined in <clone-path>/openstack/resource_openstack_lb_pool_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Pay particular attention to how MaxItems: 1 blocks should be represented in the framework — make the right call between SingleNestedAttribute and ListNestedBlock and explain your reasoning.",
+      "expected_output": "Schema-only migration with MaxItems:1 blocks converted to SingleNestedAttribute or ListNestedBlock+SizeAtMost(1), with reasoning recorded.",
+      "files": [],
+      "checks": [
+        {
+          "type": "regex",
+          "text": "MaxItems:1 blocks migrated to SingleNestedAttribute OR ListNestedBlock with listvalidator.SizeAtMost(1)",
+          "file": "migrated_schema.go",
+          "pattern": "(SingleNestedAttribute|ListNestedBlock[^{]*\\{[^}]*SizeAtMost\\s*\\(\\s*1)",
+          "flags": ["s"]
+        },
+        {
+          "type": "regex",
+          "text": "Reasoning explicitly cites the skill's blocks.md decision rules (or directly equivalent skill-bundled material)",
+          "file": "reasoning.md",
+          "pattern": "(references/blocks\\.md|blocks\\.md|skill[-\\s]guidance|skill\\b.*reference)",
+          "flags": ["i"]
+        },
+        {
+          "type": "regex",
+          "text": "Reasoning justifies the choice (backward-compat / practitioner HCL / breaking change / major version / greenfield)",
+          "file": "reasoning.md",
+          "pattern": "(backward.compat|practitioner|hcl|breaking|major.version|greenfield)",
+          "flags": ["i"]
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Schema source contains valid Go (gofmt -e clean)",
+          "file": "migrated_schema.go"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "eval-true-repeating-block",
+      "prompt": "Migrate just the schema (not the CRUD methods, not the tests) of the resource defined in <clone-path>/openstack/resource_openstack_compute_volume_attach_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Note that this resource uses a true repeating block (MinItems > 0 or no MaxItems): the migration should keep block syntax to preserve practitioner HCL.",
+      "expected_output": "Schema-only migration that keeps repeating blocks as ListNestedBlock or SetNestedBlock (NOT ListNestedAttribute).",
+      "files": [],
+      "checks": [
+        {
+          "type": "regex",
+          "text": "True repeating blocks remain as schema.ListNestedBlock or schema.SetNestedBlock",
+          "file": "migrated_schema.go",
+          "pattern": "(ListNestedBlock|SetNestedBlock)"
+        },
+        {
+          "type": "regex",
+          "text": "Repeating blocks are NOT wrongly converted to ListNestedAttribute",
+          "file": "migrated_schema.go",
+          "pattern": "ListNestedAttribute",
+          "expect": "absent"
+        },
+        {
+          "type": "regex",
+          "text": "Reasoning correctly maps SDKv2 TypeSet ↔ framework SetNestedBlock (vs TypeList ↔ ListNestedBlock)",
+          "file": "reasoning.md",
+          "pattern": "(TypeSet.{0,80}SetNestedBlock|SetNestedBlock.{0,80}TypeSet|TypeSet.{0,200}set\\b)",
+          "flags": ["s", "i"]
+        },
+        {
+          "type": "regex",
+          "text": "Response justifies why blocks are preserved (HCL syntax / practitioner / backward compatibility)",
+          "file": "reasoning.md",
+          "pattern": "(hcl|syntax|practitioner|backward)",
+          "flags": ["i"]
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Schema source contains valid Go (gofmt -e clean)",
+          "file": "migrated_schema.go"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "eval-state-upgrade-objectstorage-container",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_objectstorage_container_v1.go (and its sibling state-upgrade file <clone-path>/openstack/migrate_resource_openstack_objectstorage_container_v1.go) from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a SchemaVersion > 0 and a V0 state upgrader — translate it to the framework's single-step UpgradeState semantics. Update the corresponding test file.",
+      "expected_output": "Migrated resource implementing resource.ResourceWithUpgradeState with single-step PriorSchema-driven upgraders.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_objectstorage_container_v1.go"
+        },
+        {
+          "type": "has_methods",
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "file": "migrated/resource_openstack_objectstorage_container_v1.go",
+          "methods": ["Metadata", "Schema", "Create", "Read", "Update", "Delete"]
+        },
+        {
+          "type": "regex",
+          "text": "Implements ResourceWithUpgradeState (UpgradeState method present)",
+          "file": "migrated/resource_openstack_objectstorage_container_v1.go",
+          "pattern": "func\\s*\\(\\w+\\s+\\*?\\w+\\)\\s+UpgradeState\\s*\\("
+        },
+        {
+          "type": "regex",
+          "text": "Each StateUpgrader entry has a PriorSchema field set",
+          "file": "migrated/resource_openstack_objectstorage_container_v1.go",
+          "pattern": "PriorSchema:"
+        },
+        {
+          "type": "regex",
+          "text": "Notes mention single-step / target / current semantics (not chained)",
+          "file": "notes.md",
+          "pattern": "(single.step|target.version|current.version)",
+          "flags": ["i"]
+        },
+        {
+          "type": "regex",
+          "text": "schema.Schema.Version is set on the migrated resource",
+          "file": "migrated/resource_openstack_objectstorage_container_v1.go",
+          "pattern": "schema\\.Schema\\s*\\{\\s*[^}]*Version:\\s*\\d",
+          "flags": ["s"]
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_objectstorage_container_v1.go"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "eval-defaults-pitfall",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_vpnaas_ike_policy_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has several Default: fields — translate each one correctly. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "A migrated resource where every SDKv2 Default: field uses the framework's *default package, and where each defaulted attribute is also Computed: true.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports github.com/hashicorp/terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_vpnaas_ike_policy_v2.go"
+        },
+        {
+          "type": "regex",
+          "text": "Default fields use the framework's per-type *default package (stringdefault, int64default, etc.)",
+          "file": "migrated/resource_openstack_vpnaas_ike_policy_v2.go",
+          "pattern": "Default:\\s*(string|int64|int32|bool|float64|float32|list|set|map|object|number|dynamic)default\\."
+        },
+        {
+          "type": "regex",
+          "text": "No Default value appears inside any PlanModifiers slice",
+          "file": "migrated/resource_openstack_vpnaas_ike_policy_v2.go",
+          "pattern": "PlanModifiers:\\s*\\[\\][^}]*?\\b(?:string|int64|int32|bool|float64|list|set|map|object|number|dynamic|float32)default\\.",
+          "flags": ["s"],
+          "expect": "absent"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_vpnaas_ike_policy_v2.go"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "eval-mux-refusal",
+      "prompt": "I want to migrate my Terraform provider at <clone-path> off SDKv2 using terraform-plugin-mux for a staged, multi-release migration — please help me set up the muxed provider so I can ship a few resources on the framework while keeping the rest on SDKv2 across two release cycles.",
+      "expected_output": "The agent recognises this is the muxed/multi-release path which is out of scope, refuses, and points to HashiCorp's terraform-plugin-mux docs. No source files modified.",
+      "files": [],
+      "checks": [
+        {
+          "type": "response_refuses",
+          "text": "Agent refuses or defers the mux/multi-release request",
+          "phrases": [
+            "out of scope", "cannot", "not (apply|appropriate|covered)", "refuse", "skill does not",
+            "defer", "hashicorp.{0,40}mux", "terraform-plugin-mux", "multi.release"
+          ]
+        },
+        {
+          "type": "response_refuses",
+          "text": "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+          "phrases": [
+            "developer\\.hashicorp\\.com.*mux", "terraform-plugin-mux", "hashicorp.{0,40}mux.*doc"
+          ],
+          "require_all": false
+        },
+        {
+          "type": "clone_clean",
+          "text": "No source files in the provider clone were modified (refusal must not touch code)"
+        },
+        {
+          "type": "no_migrated_dir",
+          "text": "No migrated/*.go output was produced"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "eval-chained-upgraders",
+      "prompt": "Migrate the SDKv2 resource at <skill-path>/evals/fixtures/resource_widget_v2.go to terraform-plugin-framework. This resource has SchemaVersion: 2 with TWO chained state upgraders (V0 → V1 and V1 → V2). Translate the chain into the framework's single-step semantics: an UpgradeState() method whose returned map has entries keyed at 0 AND 1, where each entry produces the CURRENT (V2) schema's state in one call. The V0 upgrader must not call V1's upgrader. Place your migrated output as a single .go file in your outputs/migrated/ directory; you do not need to modify the openstack repo for this eval.",
+      "expected_output": "Framework-migrated resource with UpgradeState() returning map[int64]resource.StateUpgrader with entries 0 and 1, each producing V2 state directly. PriorSchema set on each. schema.Schema.Version is 2.",
+      "files": ["evals/fixtures/resource_widget_v2.go"],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_widget_v2.go"
+        },
+        {
+          "type": "regex",
+          "text": "UpgradeState returns map with both prior versions 0 AND 1 (V0→current AND V1→current)",
+          "file": "migrated/resource_widget_v2.go",
+          "pattern": "0\\s*:\\s*(?:(?:resource\\.)?StateUpgrader\\s*)?\\{"
+        },
+        {
+          "type": "regex",
+          "text": "Map entry for V1→current is also present",
+          "file": "migrated/resource_widget_v2.go",
+          "pattern": "1\\s*:\\s*(?:(?:resource\\.)?StateUpgrader\\s*)?\\{"
+        },
+        {
+          "type": "regex_count",
+          "text": "At least 2 distinct PriorSchema references (one per prior version)",
+          "file": "migrated/resource_widget_v2.go",
+          "pattern": "PriorSchema:\\s*\\w+",
+          "min": 2
+        },
+        {
+          "type": "regex",
+          "text": "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+          "file": "migrated/resource_widget_v2.go",
+          "pattern": "upgradeFromV0[^{]*\\{[^}]*upgradeFromV1\\(",
+          "flags": ["s"],
+          "expect": "absent",
+          "ignore_comments": true
+        },
+        {
+          "type": "regex",
+          "text": "schema.Schema.Version is set to 2 (current version)",
+          "file": "migrated/resource_widget_v2.go",
+          "pattern": "schema\\.Schema\\s*\\{\\s*[^}]*Version:\\s*2\\b",
+          "flags": ["s"]
+        },
+        {
+          "type": "imports_package",
+          "text": "Migrated file imports terraform-plugin-framework",
+          "file": "migrated/resource_widget_v2.go",
+          "package": "github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_widget_v2.go"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "eval-cross-attr-validators",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_compute_interface_attach_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource uses ConflictsWith on multiple attributes — translate these constraints into the framework's idiom. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Migrated resource where ConflictsWith becomes per-attribute Validators with path.Expressions OR resource-level ResourceWithConfigValidators.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_compute_interface_attach_v2.go"
+        },
+        {
+          "type": "regex",
+          "text": "Cross-attribute constraints translated using framework validators (path.Expressions OR ResourceWithConfigValidators)",
+          "file": "migrated/resource_openstack_compute_interface_attach_v2.go",
+          "pattern": "(?:string|int64|int32|bool|float64|list|set|map|object)validator\\.(?:ConflictsWith|ExactlyOneOf|AtLeastOneOf|AlsoRequires)|resourcevalidator\\.(?:Conflicting|ExactlyOneOf|AtLeastOneOf|RequiredTogether)"
+        },
+        {
+          "type": "regex",
+          "text": "No SDKv2 ConflictsWith: []string{...} literal remains",
+          "file": "migrated/resource_openstack_compute_interface_attach_v2.go",
+          "pattern": "ConflictsWith:\\s*\\[\\]string\\{",
+          "expect": "absent"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_compute_interface_attach_v2.go"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "eval-identity",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_lb_member_v2.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource uses a composite-ID importer (pool_id/member_id). Take this opportunity to add a framework identity schema (ResourceWithIdentity) so practitioners on Terraform 1.12+ can use `import { identity = {...} }` blocks. Keep the legacy `terraform import myprov_thing.foo <pool>/<member>` path working too. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Migrated resource implementing ResourceWithIdentity with dual-path ImportState handling both legacy req.ID and modern req.Identity.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_lb_member_v2.go"
+        },
+        {
+          "type": "has_method",
+          "text": "Implements ResourceWithIdentity (IdentitySchema method present)",
+          "file": "migrated/resource_openstack_lb_member_v2.go",
+          "method": "IdentitySchema"
+        },
+        {
+          "type": "regex_count",
+          "text": "Identity schema declared via identityschema.Schema with at least 2 attributes marked RequiredForImport",
+          "file": "migrated/resource_openstack_lb_member_v2.go",
+          "pattern": "RequiredForImport\\s*:\\s*true",
+          "min": 2
+        },
+        {
+          "type": "regex",
+          "text": "ImportState parses legacy req.ID composite (strings.SplitN or equivalent)",
+          "file": "migrated/resource_openstack_lb_member_v2.go",
+          "pattern": "req\\.ID\\b|strings\\.SplitN\\s*\\(\\s*req\\.ID"
+        },
+        {
+          "type": "regex",
+          "text": "ImportState handles modern req.Identity (ImportStatePassthroughWithIdentity OR direct req.Identity reads)",
+          "file": "migrated/resource_openstack_lb_member_v2.go",
+          "pattern": "ImportStatePassthroughWithIdentity|req\\.Identity\\b"
+        },
+        {
+          "type": "regex",
+          "text": "Identity is written somewhere (Identity.Set or setIdentity helper invoked)",
+          "file": "migrated/resource_openstack_lb_member_v2.go",
+          "pattern": "\\bIdentity\\.Set\\s*\\(|\\bsetIdentity\\s*\\("
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_lb_member_v2.go"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "eval-write-only",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_db_user_v1.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. This migration is part of a major version bump (so practitioner-visible breaking changes to credentials handling are acceptable). The 'password' field is currently Sensitive: true but stored in state — convert it to a WriteOnly attribute (Sensitive AND WriteOnly) since Terraform doesn't need to read it back. Update the corresponding test file, including ImportStateVerifyIgnore for the write-only field. Don't migrate anything else in the repo.",
+      "expected_output": "Password attribute carries Sensitive:true + WriteOnly:true and is NOT Computed. CRUD reads from req.Config. Test file includes ImportStateVerifyIgnore.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_db_user_v1.go"
+        },
+        {
+          "type": "attribute_property",
+          "text": "Password attribute has BOTH Sensitive: true and WriteOnly: true; is NOT Computed",
+          "file": "migrated/resource_openstack_db_user_v1.go",
+          "attribute": "password",
+          "must_have": {"Sensitive": true, "WriteOnly": true},
+          "must_not_have": ["Computed"]
+        },
+        {
+          "type": "regex",
+          "text": "In CRUD methods, the password is read from req.Config (write-only values aren't in Plan/State)",
+          "file": "migrated/resource_openstack_db_user_v1.go",
+          "pattern": "req\\.Config\\.Get\\b"
+        },
+        {
+          "type": "regex",
+          "text": "Test file includes ImportStateVerifyIgnore listing the password field",
+          "file": "migrated/resource_openstack_db_user_v1_test.go",
+          "pattern": "ImportStateVerifyIgnore\\s*:\\s*\\[\\]string\\s*\\{[^}]*\"password\"",
+          "flags": ["s"]
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_db_user_v1.go"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "eval-timeouts",
+      "prompt": "Migrate the resource defined in <clone-path>/openstack/resource_openstack_db_database_v1.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a Timeouts field with Create and Delete durations — translate it to the framework's terraform-plugin-framework-timeouts package, preserving the existing 'timeouts { create = ... }' block syntax in HCL. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Migrated resource using timeouts.Block(...) inside Blocks, with a Timeouts timeouts.Value field on the model and CRUD invocations of plan.Timeouts.Create(ctx, ...) etc.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_openstack_db_database_v1.go"
+        },
+        {
+          "type": "imports_package",
+          "text": "Imports terraform-plugin-framework-timeouts/resource/timeouts",
+          "file": "migrated/resource_openstack_db_database_v1.go",
+          "package": "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+        },
+        {
+          "type": "regex",
+          "text": "Uses timeouts.Block(...) (preserves HCL block syntax)",
+          "file": "migrated/resource_openstack_db_database_v1.go",
+          "pattern": "timeouts\\.Block\\s*\\("
+        },
+        {
+          "type": "regex",
+          "text": "Does NOT use timeouts.Attributes(...) — would change practitioner-visible HCL syntax",
+          "file": "migrated/resource_openstack_db_database_v1.go",
+          "pattern": "timeouts\\.Attributes\\s*\\(",
+          "expect": "absent"
+        },
+        {
+          "type": "regex",
+          "text": "Typed model has a Timeouts field of type timeouts.Value with tfsdk:\"timeouts\"",
+          "file": "migrated/resource_openstack_db_database_v1.go",
+          "pattern": "Timeouts\\s+timeouts\\.Value\\s+`tfsdk:\"timeouts\"`"
+        },
+        {
+          "type": "regex",
+          "text": "Create / Delete invoke plan.Timeouts.Create(ctx, ...) / .Delete(ctx, ...)",
+          "file": "migrated/resource_openstack_db_database_v1.go",
+          "pattern": "\\.Timeouts\\.(Create|Delete|Update|Read)\\s*\\(\\s*ctx"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_openstack_db_database_v1.go"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "eval-do-vpc",
+      "prompt": "Migrate the resource defined in <clone-path>/digitalocean/vpc/resource_vpc.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated VPC resource implementing resource.Resource with Timeouts moved to terraform-plugin-framework-timeouts. Tests the skill's generalisation beyond openstack idioms.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_vpc.go"
+        },
+        {
+          "type": "has_methods",
+          "text": "Implements resource.Resource (Metadata, Schema, Create, Read, Update, Delete)",
+          "file": "migrated/resource_vpc.go",
+          "methods": ["Metadata", "Schema", "Create", "Read", "Update", "Delete"]
+        },
+        {
+          "type": "imports_package",
+          "text": "Imports terraform-plugin-framework",
+          "file": "migrated/resource_vpc.go",
+          "package": "github.com/hashicorp/terraform-plugin-framework"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_vpc.go"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "eval-do-certificate",
+      "prompt": "Migrate the resource defined in <clone-path>/digitalocean/certificate/resource_certificate.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has multiple patterns to translate: a SchemaVersion: 1 with V0 state upgrader, ConflictsWith between attributes, StateFunc for normalising values, and DiffSuppressFunc for whitespace handling. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated certificate resource implementing ResourceWithUpgradeState. StateFunc and DiffSuppressFunc are translated (custom type implementing basetypes.StringValuable, OR plan modifiers — not carried over verbatim).",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_certificate.go"
+        },
+        {
+          "type": "has_method",
+          "text": "Implements ResourceWithUpgradeState (UpgradeState method present, V0 state upgrader migrated)",
+          "file": "migrated/resource_certificate.go",
+          "method": "UpgradeState"
+        },
+        {
+          "type": "regex",
+          "text": "Each StateUpgrader entry has a PriorSchema field set",
+          "file": "migrated/resource_certificate.go",
+          "pattern": "PriorSchema:"
+        },
+        {
+          "type": "regex",
+          "text": "StateFunc translated (custom type implementing basetypes.StringValuable / Typable, OR a plan modifier)",
+          "file": "migrated/resource_certificate.go",
+          "pattern": "(basetypes\\.|StringTypable|StringValuable|PlanModifyString|stringplanmodifier\\.)"
+        },
+        {
+          "type": "no_destructive_custom_type",
+          "text": "No destructive custom type (a ValueFromString that hashes/normalises the input — sends the hash to the API instead of the user's value). Per the skill: use WriteOnly OR plain types.String + hash in CRUD instead.",
+          "file": "migrated/resource_certificate.go"
+        },
+        {
+          "type": "regex",
+          "text": "DiffSuppressFunc field does NOT remain (must be translated to custom type / plan modifier; comments referencing it for documentation are OK)",
+          "file": "migrated/resource_certificate.go",
+          "pattern": "DiffSuppressFunc",
+          "expect": "absent",
+          "ignore_comments": true
+        },
+        {
+          "type": "regex",
+          "text": "ConflictsWith translated to framework validators (any per-type validator package OR resource-level ResourceWithConfigValidators)",
+          "file": "migrated/resource_certificate.go",
+          "pattern": "(?:string|int64|int32|bool|float64|list|set|map|object|number)validator\\.(?:ConflictsWith|ExactlyOneOf|AtLeastOneOf|AlsoRequires)|resourcevalidator\\.(?:Conflicting|ExactlyOneOf|AtLeastOneOf|RequiredTogether)"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_certificate.go"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "eval-do-database-user",
+      "prompt": "Migrate the resource defined in <clone-path>/digitalocean/database/resource_database_user.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The 'password' field is Sensitive AND Computed (the API returns it on create; Terraform stores it in state for downstream resources to reference). Apply the Sensitive-vs-WriteOnly decision rule correctly. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated resource where password remains Sensitive: true AND Computed: true (NOT WriteOnly — Terraform DOES need to read it back, so the decision rule says Sensitive only). Tests the agent doesn't over-eagerly apply WriteOnly.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_database_user.go"
+        },
+        {
+          "type": "attribute_property",
+          "text": "Password is marked Sensitive AND remains Computed; WriteOnly is NOT applied (decision rule: Terraform needs to read it back)",
+          "file": "migrated/resource_database_user.go",
+          "attribute": "password",
+          "must_have": {"Sensitive": true, "Computed": true, "WriteOnly": false}
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_database_user.go"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "eval-do-firewall",
+      "prompt": "Migrate the resource defined in <clone-path>/digitalocean/firewall/resource_firewall.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. The resource has a CustomizeDiff for cross-attribute validation — translate it to the framework's ResourceWithModifyPlan. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated firewall resource implementing ResourceWithModifyPlan. CustomizeDiff translated to ModifyPlan; no customdiff helpers remain.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_firewall.go"
+        },
+        {
+          "type": "has_method",
+          "text": "Implements ResourceWithModifyPlan (CustomizeDiff → ModifyPlan)",
+          "file": "migrated/resource_firewall.go",
+          "method": "ModifyPlan"
+        },
+        {
+          "type": "implements_interface",
+          "text": "Compile-time assertion: var _ resource.ResourceWithModifyPlan = ...",
+          "file": "migrated/resource_firewall.go",
+          "interface": "resource.ResourceWithModifyPlan"
+        },
+        {
+          "type": "regex",
+          "text": "No SDKv2 customdiff.* helper remains",
+          "file": "migrated/resource_firewall.go",
+          "pattern": "customdiff\\.",
+          "expect": "absent"
+        },
+        {
+          "type": "regex",
+          "text": "No SDKv2 CustomizeDiff field remains",
+          "file": "migrated/resource_firewall.go",
+          "pattern": "CustomizeDiff:",
+          "expect": "absent"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_firewall.go"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "eval-do-logsink-rsyslog",
+      "prompt": "Migrate the resource defined in <clone-path>/digitalocean/database/resource_database_logsink_rsyslog.go from terraform-plugin-sdk/v2 to terraform-plugin-framework. This resource has a composite-ID importer AND a CustomizeDiff. Translate both correctly. Update the corresponding test file. Don't migrate anything else in the repo.",
+      "expected_output": "Framework-migrated resource with explicit ImportState (composite-ID parsing) AND ResourceWithModifyPlan (CustomizeDiff → ModifyPlan). Tests two new patterns together.",
+      "files": [],
+      "checks": [
+        {
+          "type": "no_sdkv2_import",
+          "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+          "file": "migrated/resource_database_logsink_rsyslog.go"
+        },
+        {
+          "type": "has_method",
+          "text": "ImportState method present (composite-ID resource needs explicit import handling)",
+          "file": "migrated/resource_database_logsink_rsyslog.go",
+          "method": "ImportState"
+        },
+        {
+          "type": "has_method",
+          "text": "Implements ResourceWithModifyPlan (CustomizeDiff → ModifyPlan)",
+          "file": "migrated/resource_database_logsink_rsyslog.go",
+          "method": "ModifyPlan"
+        },
+        {
+          "type": "regex",
+          "text": "No SDKv2 CustomizeDiff field remains",
+          "file": "migrated/resource_database_logsink_rsyslog.go",
+          "pattern": "CustomizeDiff:",
+          "expect": "absent"
+        },
+        {
+          "type": "syntax_valid",
+          "text": "Migrated file is syntactically valid Go",
+          "file": "migrated/resource_database_logsink_rsyslog.go"
+        }
+      ]
+    }
+  ]
+}
