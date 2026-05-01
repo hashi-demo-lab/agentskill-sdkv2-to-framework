@@ -1,0 +1,50 @@
+{
+  "expectations": [
+    {
+      "text": "Migrated file no longer imports terraform-plugin-sdk/v2",
+      "passed": true,
+      "evidence": "sdkv2 import absent"
+    },
+    {
+      "text": "UpgradeState returns map with both prior versions 0 AND 1 (V0\u2192current AND V1\u2192current)",
+      "passed": true,
+      "evidence": "matched: 0: {"
+    },
+    {
+      "text": "Map entry for V1\u2192current is also present",
+      "passed": true,
+      "evidence": "matched: 1: {"
+    },
+    {
+      "text": "At least 2 distinct PriorSchema references (one per prior version)",
+      "passed": true,
+      "evidence": "matched 2 (need >= 2)"
+    },
+    {
+      "text": "V0 upgrader does NOT call V1's upgrader (no chain habit)",
+      "passed": true,
+      "evidence": "absent"
+    },
+    {
+      "text": "schema.Schema.Version is set to 2 (current version)",
+      "passed": true,
+      "evidence": "matched: schema.Schema{\n\t\tVersion: 2, // current schema version (matches SDKv2 SchemaVersion: 2"
+    },
+    {
+      "text": "Migrated file imports terraform-plugin-framework",
+      "passed": true,
+      "evidence": "imports github.com/hashicorp/terraform-plugin-framework"
+    },
+    {
+      "text": "Migrated file is syntactically valid Go",
+      "passed": true,
+      "evidence": "gofmt -e clean"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  }
+}

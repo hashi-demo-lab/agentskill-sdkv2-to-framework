@@ -1,0 +1,465 @@
+# Semgrep rules for auditing a terraform-plugin-sdk/v2 provider.
+#
+# Each rule fires once per matching AST occurrence. The audit_sdkv2.sh script
+# aggregates the JSON output by rule id and per file.
+#
+# Rule design: prefer AST-aware matches over textual ones. For example,
+# `max-items-1-nested-block` matches struct literals that contain BOTH
+# `MaxItems: 1` AND a nested `Elem: &schema.Resource{...}` — something the
+# previous grep could only flag as "needs manual review".
+rules:
+  # -- Provider-level wiring -------------------------------------------------
+  - id: resources-map
+    pattern: "ResourcesMap: $X"
+    languages: [go]
+    severity: INFO
+    message: "ResourcesMap field — provider declares resources here."
+
+  - id: data-sources-map
+    pattern: "DataSourcesMap: $X"
+    languages: [go]
+    severity: INFO
+    message: "DataSourcesMap field — provider declares data sources here."
+
+  # -- Per-attribute features that move APIs --------------------------------
+  - id: force-new
+    pattern: "ForceNew: true"
+    languages: [go]
+    severity: INFO
+    message: "ForceNew: true → migrate to RequiresReplace plan modifier."
+
+  - id: validate-func
+    pattern-either:
+      - pattern: "ValidateFunc: $X"
+      - pattern: "ValidateDiagFunc: $X"
+    languages: [go]
+    severity: INFO
+    message: "ValidateFunc/ValidateDiagFunc → Validators slice."
+
+  - id: diff-suppress-func
+    pattern: "DiffSuppressFunc: $X"
+    languages: [go]
+    severity: INFO
+    message: "DiffSuppressFunc → custom type or plan modifier (analyse intent)."
+
+  - id: customize-diff
+    pattern: "CustomizeDiff: $X"
+    languages: [go]
+    severity: INFO
+    message: "CustomizeDiff → ResourceWithModifyPlan.ModifyPlan."
+
+  - id: state-func
+    pattern: "StateFunc: $X"
+    languages: [go]
+    severity: INFO
+    message: "StateFunc → custom type with normalisation."
+
+  - id: sensitive
+    pattern: "Sensitive: true"
+    languages: [go]
+    severity: INFO
+    message: "Sensitive: true (consider WriteOnly: true if value need not round-trip)."
+
+  - id: deprecated-attr
+    pattern: "Deprecated: $MSG"
+    languages: [go]
+    severity: INFO
+    message: "Deprecated → DeprecationMessage in the framework."
+
+  - id: schema-default
+    patterns:
+      - pattern: "Default: $X"
+      - pattern-inside: "&$PKG.Schema{...}"
+    languages: [go]
+    severity: INFO
+    message: "Default → defaults package (NOT PlanModifiers). Use stringdefault.StaticString, int64default.StaticInt64, etc."
+
+  - id: cross-attr-constraint
+    pattern-either:
+      - pattern: "ConflictsWith: $X"
+      - pattern: "ExactlyOneOf: $X"
+      - pattern: "AtLeastOneOf: $X"
+      - pattern: "RequiredWith: $X"
+    languages: [go]
+    severity: INFO
+    message: "Cross-attribute constraint → per-attribute Validators with path.Expressions, OR ResourceWithConfigValidators."
+
+  - id: set-hash-func
+    patterns:
+      - pattern: "Set: $X"
+      - pattern-inside: "&$PKG.Schema{...}"
+    languages: [go]
+    severity: INFO
+    message: "Set hash function → drop entirely. SetAttribute / SetNestedAttribute compute uniqueness internally."
+
+  - id: migrate-state-legacy
+    pattern: "MigrateState: $X"
+    languages: [go]
+    severity: INFO
+    message: "MigrateState (legacy SDKv2 v1.x) → upgrade to StateUpgraders in SDKv2 first, then to ResourceWithUpgradeState."
+
+  # -- Resource-level features -----------------------------------------------
+  - id: importer
+    patterns:
+      - pattern: "Importer: $X"
+      - pattern-inside: "&$PKG.Resource{...}"
+    languages: [go]
+    severity: INFO
+    message: "Importer → ResourceWithImportState.ImportState method."
+
+  - id: timeouts
+    pattern: "Timeouts: $X"
+    languages: [go]
+    severity: INFO
+    message: "Timeouts → terraform-plugin-framework-timeouts package."
+
+  - id: state-upgraders
+    pattern: "StateUpgraders: $X"
+    languages: [go]
+    severity: INFO
+    message: "StateUpgraders → ResourceWithUpgradeState (single-step semantics)."
+
+  - id: schema-version
+    patterns:
+      - pattern: "SchemaVersion: $N"
+      - pattern-inside: "&$PKG.Resource{...}"
+    languages: [go]
+    severity: INFO
+    message: "SchemaVersion → schema.Schema.Version field."
+
+  # -- Block / nested-attribute decision points (multi-line, package-agnostic)
+  # Providers commonly wrap terraform-plugin-sdk/v2 behind their own alias
+  # (e.g. `pluginsdk.Resource`, `tfsdk.Resource`). The patterns use a
+  # metavariable for the package alias so they match any such wrapper.
+  - id: max-items-1-nested-block
+    pattern: |
+      {
+        ...,
+        MaxItems: 1,
+        ...,
+        Elem: &$PKG.Resource{...},
+        ...,
+      }
+    languages: [go]
+    severity: INFO
+    message: "MaxItems:1 paired with nested Elem (block) — block-vs-nested-attribute decision required (see references/blocks.md)."
+
+  - id: nested-elem-resource
+    pattern: |
+      Elem: &$PKG.Resource{
+        ...
+      }
+    languages: [go]
+    severity: INFO
+    message: "Nested Elem (block) — see references/blocks.md."
+
+  - id: min-items-positive
+    # MinItems: 0 is the default — only fire on positive values that signal
+    # a true repeating block.
+    pattern: "MinItems: $N"
+    pattern-not: "MinItems: 0"
+    languages: [go]
+    severity: INFO
+    message: "MinItems > 0 — true repeating block (keep as block, not nested attribute)."
+
+  # ===========================================================================
+  # P0 — Universal helper-package and CRUD-shape patterns
+  # ===========================================================================
+
+  - id: retry-state-change-conf
+    pattern: |
+      retry.StateChangeConf{...}
+    languages: [go]
+    severity: INFO
+    message: "retry.StateChangeConf — wait-for-API-state pattern. No framework equivalent; replace with inline ticker loop (waitForState in references/resources.md)."
+
+  - id: retry-retry-context
+    pattern-either:
+      - pattern: "retry.RetryContext($CTX, $TIMEOUT, $F)"
+      - pattern: "resource.RetryContext($CTX, $TIMEOUT, $F)"
+    languages: [go]
+    severity: INFO
+    message: "retry.RetryContext / resource.RetryContext — old retry helper. Replace with context-aware ticker loop."
+
+  - id: customdiff-helper
+    pattern-either:
+      - pattern: "customdiff.All(...)"
+      - pattern: "customdiff.Sequence(...)"
+      - pattern: "customdiff.IfValueChange(...)"
+      - pattern: "customdiff.ForceNewIf(...)"
+      - pattern: "customdiff.ForceNewIfChange(...)"
+      - pattern: "customdiff.ComputedIf(...)"
+      - pattern: "customdiff.ValidateChange(...)"
+      - pattern: "customdiff.ValidateValue(...)"
+      - pattern: "customdiff.IfValue(...)"
+    languages: [go]
+    severity: INFO
+    message: "helper/customdiff combinator — no framework port. Translate to ResourceWithModifyPlan.ModifyPlan body."
+
+  - id: helper-validation
+    pattern-either:
+      - pattern: "validation.StringInSlice(...)"
+      - pattern: "validation.StringLenBetween(...)"
+      - pattern: "validation.StringIsNotEmpty"
+      - pattern: "validation.StringIsNotWhiteSpace"
+      - pattern: "validation.StringMatch(...)"
+      - pattern: "validation.StringIsValidRegExp"
+      - pattern: "validation.IntInSlice(...)"
+      - pattern: "validation.IntBetween(...)"
+      - pattern: "validation.IntAtLeast(...)"
+      - pattern: "validation.IntAtMost(...)"
+      - pattern: "validation.FloatBetween(...)"
+      - pattern: "validation.FloatAtLeast(...)"
+      - pattern: "validation.FloatAtMost(...)"
+      - pattern: "validation.IsCIDR"
+      - pattern: "validation.IsCIDRNetwork(...)"
+      - pattern: "validation.IsIPAddress"
+      - pattern: "validation.IsIPv4Address"
+      - pattern: "validation.IsIPv6Address"
+      - pattern: "validation.IsMACAddress"
+      - pattern: "validation.IsPortNumber"
+      - pattern: "validation.IsRFC1123Name"
+      - pattern: "validation.IsRFC3339Time"
+      - pattern: "validation.IsURLWithHTTPS"
+      - pattern: "validation.IsURLWithHTTPorHTTPS"
+      - pattern: "validation.IsURLWithScheme(...)"
+      - pattern: "validation.IsUUID"
+      - pattern: "validation.NoZeroValues"
+      - pattern: "validation.ToDiagFunc(...)"
+      - pattern: "validation.All(...)"
+      - pattern: "validation.Any(...)"
+    languages: [go]
+    severity: INFO
+    message: "helper/validation function — replace with terraform-plugin-framework-validators (see references/deprecations.md for the mapping table)."
+
+  - id: import-state-passthrough
+    pattern: "schema.ImportStatePassthroughContext"
+    languages: [go]
+    severity: INFO
+    message: "ImportStatePassthroughContext (trivial importer) — replace with `resource.ImportStatePassthroughID(ctx, path.Root(\"id\"), req, resp)`."
+
+  - id: crud-context-fields
+    pattern-either:
+      - pattern: "CreateContext: $F"
+      - pattern: "ReadContext: $F"
+      - pattern: "UpdateContext: $F"
+      - pattern: "DeleteContext: $F"
+    languages: [go]
+    severity: INFO
+    message: "CreateContext/ReadContext/UpdateContext/DeleteContext — SDKv2 CRUD field. Becomes a method on the framework resource type with typed (req, resp) signature."
+
+  - id: exists-callback
+    patterns:
+      - pattern: "Exists: $F"
+      - pattern-inside: "&$PKG.Resource{...}"
+    languages: [go]
+    severity: INFO
+    message: "Exists callback — gone in framework. Signal absence from Read via resp.State.RemoveResource(ctx)."
+
+  - id: configure-context-func
+    pattern: "ConfigureContextFunc: $F"
+    languages: [go]
+    severity: INFO
+    message: "Provider ConfigureContextFunc — becomes a Configure method on the framework provider type."
+
+  - id: schema-provider-type
+    pattern-either:
+      - pattern: "&$PKG.Provider{...}"
+      - pattern: |
+          func $F(...) *$PKG.Provider {
+            ...
+          }
+      - pattern: |
+          func ($R) $F(...) *$PKG.Provider {
+            ...
+          }
+      - pattern: "var $V *$PKG.Provider"
+      - pattern: "var $V $T = map[string]func() (*$PKG.Provider, error){...}"
+    languages: [go]
+    severity: INFO
+    message: "*schema.Provider — SDKv2 provider type. Replace with a struct implementing provider.Provider interface."
+
+  # ===========================================================================
+  # P1 — CRUD-body patterns (proxy for typed-model conversion scope)
+  # ===========================================================================
+
+  - id: schema-resource-data
+    pattern-either:
+      - pattern: |
+          func $F(..., $D *$PKG.ResourceData, ...) $RET {
+            ...
+          }
+      - pattern: |
+          func ($R) $F(..., $D *$PKG.ResourceData, ...) $RET {
+            ...
+          }
+      - pattern: "$D := $X.(*$PKG.ResourceData)"
+    languages: [go]
+    severity: INFO
+    message: "*schema.ResourceData — each occurrence is a CRUD function signature that needs req/resp parameters and typed-model conversion."
+
+  - id: resource-data-id
+    pattern-either:
+      - pattern: "$D.Id()"
+      - pattern: "$D.SetId($X)"
+    languages: [go]
+    severity: INFO
+    message: "d.Id()/d.SetId() — replace with state.ID.ValueString() / typed model + resp.State.Set / resp.State.RemoveResource."
+
+  - id: resource-data-change
+    pattern-either:
+      - pattern: "$D.HasChange($K)"
+      - pattern: "$D.GetChange($K)"
+      - pattern: "$D.IsNewResource()"
+      - pattern: "$D.Partial($X)"
+    languages: [go]
+    severity: INFO
+    message: "d.HasChange/GetChange/IsNewResource/Partial — compare req.Plan.X to req.State.X (or check req.State.Raw.IsNull() for IsNewResource). Partial is gone."
+
+  - id: diag-helpers
+    pattern-either:
+      - pattern: "diag.FromErr($E)"
+      - pattern: "diag.Errorf($F, ...)"
+    languages: [go]
+    severity: INFO
+    message: "diag.FromErr/diag.Errorf — replace with resp.Diagnostics.AddError(...)."
+
+  - id: type-collection-primitive-elem
+    pattern: |
+      Elem: &$PKG.Schema{
+        Type: $T,
+      }
+    languages: [go]
+    severity: INFO
+    message: "TypeList/TypeSet/TypeMap of primitive (Elem &Schema{Type:}) — becomes ListAttribute/SetAttribute/MapAttribute with ElementType:, NOT a nested block."
+
+  # ===========================================================================
+  # Test-file patterns (these fire when the test-file pass is enabled)
+  # ===========================================================================
+
+  - id: test-provider-factories
+    pattern: "ProviderFactories: $X"
+    languages: [go]
+    severity: INFO
+    message: "ProviderFactories — must become ProtoV6ProviderFactories using providerserver.NewProtocol6WithError(...)."
+
+  - id: test-resource-test-helper
+    pattern-either:
+      - pattern: "resource.Test($T, $TC)"
+      - pattern: "resource.UnitTest($T, $TC)"
+      - pattern: "resource.ParallelTest($T, $TC)"
+    languages: [go]
+    severity: INFO
+    message: "helper/resource Test/UnitTest/ParallelTest — must come from terraform-plugin-testing/helper/resource (not terraform-plugin-sdk/v2/helper/resource)."
+
+  # ===========================================================================
+  # P0 additions from Opus gap analysis — frequent CRUD-body and provider-config
+  # patterns that were silently invisible to the previous ruleset.
+  # ===========================================================================
+
+  - id: resource-data-get
+    pattern-either:
+      - pattern: "$D.Get($K)"
+      - pattern: "$D.GetOk($K)"
+      - pattern: "$D.GetOkExists($K)"
+    languages: [go]
+    severity: INFO
+    message: "d.Get/d.GetOk/d.GetOkExists — replace with typed Plan/State.Get into a model struct, then access typed fields."
+
+  - id: resource-data-set
+    pattern: "$D.Set($K, $V)"
+    languages: [go]
+    severity: INFO
+    message: "d.Set — replace with typed model field assignment + resp.State.Set(ctx, model)."
+
+  - id: env-default-func
+    pattern-either:
+      - pattern: "$PKG.EnvDefaultFunc(...)"
+      - pattern: "$PKG.MultiEnvDefaultFunc(...)"
+    languages: [go]
+    severity: INFO
+    message: "schema.EnvDefaultFunc / MultiEnvDefaultFunc — no framework equivalent. Read env directly in Configure (os.Getenv) or in a custom default function."
+
+  - id: schema-default-timeout
+    pattern-either:
+      - pattern: "$PKG.DefaultTimeout(...)"
+      - pattern: "$D.Timeout($K)"
+    languages: [go]
+    severity: INFO
+    message: "schema.DefaultTimeout / d.Timeout — replace with framework-timeouts: plan.Timeouts.Create(ctx, defaultDuration) etc."
+
+  # ===========================================================================
+  # P1 additions — real but lower frequency
+  # ===========================================================================
+
+  - id: resource-constructor
+    pattern-either:
+      - pattern: |
+          func $F() *$PKG.Resource {
+            ...
+          }
+      - pattern: |
+          func $F($CTX) *$PKG.Resource {
+            ...
+          }
+    languages: [go]
+    severity: INFO
+    message: "Resource constructor (returns *schema.Resource) — count = number of resources/data sources to migrate."
+
+  - id: resource-diff-signature
+    pattern-either:
+      - pattern: |
+          func $F(..., $D *$PKG.ResourceDiff, ...) $RET {
+            ...
+          }
+      - pattern: |
+          func ($R) $F(..., $D *$PKG.ResourceDiff, ...) $RET {
+            ...
+          }
+    languages: [go]
+    severity: INFO
+    message: "*schema.ResourceDiff function signature — body must be ported into a ResourceWithModifyPlan.ModifyPlan method."
+
+  - id: schema-set-cast
+    pattern: "$D.Get($K).(*$PKG.Set)"
+    languages: [go]
+    severity: INFO
+    message: "Inline *schema.Set cast — TypeSet expanded to manual List() walk. Replace with typed-model SetAttribute access."
+
+  - id: helper-acctest
+    pattern-either:
+      - pattern: "acctest.RandString(...)"
+      - pattern: "acctest.RandStringFromCharSet(...)"
+      - pattern: "acctest.RandIntRange(...)"
+      - pattern: "acctest.RandomWithPrefix(...)"
+      - pattern: "acctest.RandIpAddress(...)"
+      - pattern: "acctest.RandTLSCert(...)"
+    languages: [go]
+    severity: INFO
+    message: "helper/acctest functions — must come from terraform-plugin-testing/helper/acctest (drop the SDKv2 import path)."
+
+  - id: helper-structure
+    pattern-either:
+      - pattern: "structure.NormalizeJsonString(...)"
+      - pattern: "structure.SuppressJsonDiff(...)"
+      - pattern: "structure.ExpandJsonFromString(...)"
+      - pattern: "structure.FlattenJsonToString(...)"
+    languages: [go]
+    severity: INFO
+    message: "helper/structure (JSON normalisation) — gone. Refactor to a custom-type ValueFromTerraform/ValueFromString or a plan modifier."
+
+  # ===========================================================================
+  # Test-only additions
+  # ===========================================================================
+
+  - id: test-providers-field
+    pattern: "Providers: $X"
+    languages: [go]
+    severity: INFO
+    message: "Providers: (older test field, pre-SDKv2.5) → ProtoV6ProviderFactories."
+
+  - id: test-pre-check
+    pattern: "PreCheck: $X"
+    languages: [go]
+    severity: INFO
+    message: "PreCheck: in test config — body usually references *schema.Provider plumbing that needs rewriting."

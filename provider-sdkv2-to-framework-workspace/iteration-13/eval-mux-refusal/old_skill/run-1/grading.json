@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "Agent refuses or defers the mux/multi-release request",
+      "passed": false,
+      "evidence": "matched 0/9: []"
+    },
+    {
+      "text": "Response references HashiCorp's terraform-plugin-mux documentation or repo",
+      "passed": false,
+      "evidence": "matched 0/3: []"
+    },
+    {
+      "text": "No source files in the provider clone were modified (refusal must not touch code)",
+      "passed": true,
+      "evidence": "clean"
+    },
+    {
+      "text": "No migrated/*.go output was produced",
+      "passed": true,
+      "evidence": "no migrated/*.go"
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "total": 4,
+    "pass_rate": 0.5
+  }
+}
