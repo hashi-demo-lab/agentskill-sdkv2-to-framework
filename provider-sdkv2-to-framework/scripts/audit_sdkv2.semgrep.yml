@@ -67,7 +67,9 @@ rules:
     message: "Deprecated → DeprecationMessage in the framework."
 
   - id: schema-default
-    pattern: "Default: $X"
+    patterns:
+      - pattern: "Default: $X"
+      - pattern-inside: "&$PKG.Schema{...}"
     languages: [go]
     severity: INFO
     message: "Default → defaults package (NOT PlanModifiers). Use stringdefault.StaticString, int64default.StaticInt64, etc."
@@ -83,7 +85,9 @@ rules:
     message: "Cross-attribute constraint → per-attribute Validators with path.Expressions, OR ResourceWithConfigValidators."
 
   - id: set-hash-func
-    pattern: "Set: $X"
+    patterns:
+      - pattern: "Set: $X"
+      - pattern-inside: "&$PKG.Schema{...}"
     languages: [go]
     severity: INFO
     message: "Set hash function → drop entirely. SetAttribute / SetNestedAttribute compute uniqueness internally."
@@ -96,7 +100,9 @@ rules:
 
   # -- Resource-level features -----------------------------------------------
   - id: importer
-    pattern: "Importer: $X"
+    patterns:
+      - pattern: "Importer: $X"
+      - pattern-inside: "&$PKG.Resource{...}"
     languages: [go]
     severity: INFO
     message: "Importer → ResourceWithImportState.ImportState method."
@@ -114,7 +120,9 @@ rules:
     message: "StateUpgraders → ResourceWithUpgradeState (single-step semantics)."
 
   - id: schema-version
-    pattern: "SchemaVersion: $N"
+    patterns:
+      - pattern: "SchemaVersion: $N"
+      - pattern-inside: "&$PKG.Resource{...}"
     languages: [go]
     severity: INFO
     message: "SchemaVersion → schema.Schema.Version field."
@@ -241,7 +249,9 @@ rules:
     message: "CreateContext/ReadContext/UpdateContext/DeleteContext — SDKv2 CRUD field. Becomes a method on the framework resource type with typed (req, resp) signature."
 
   - id: exists-callback
-    pattern: "Exists: $F"
+    patterns:
+      - pattern: "Exists: $F"
+      - pattern-inside: "&$PKG.Resource{...}"
     languages: [go]
     severity: INFO
     message: "Exists callback — gone in framework. Signal absence from Read via resp.State.RemoveResource(ctx)."
@@ -254,8 +264,17 @@ rules:
 
   - id: schema-provider-type
     pattern-either:
-      - pattern: "*$PKG.Provider"
       - pattern: "&$PKG.Provider{...}"
+      - pattern: |
+          func $F(...) *$PKG.Provider {
+            ...
+          }
+      - pattern: |
+          func ($R) $F(...) *$PKG.Provider {
+            ...
+          }
+      - pattern: "var $V *$PKG.Provider"
+      - pattern: "var $V $T = map[string]func() (*$PKG.Provider, error){...}"
     languages: [go]
     severity: INFO
     message: "*schema.Provider — SDKv2 provider type. Replace with a struct implementing provider.Provider interface."
@@ -265,10 +284,19 @@ rules:
   # ===========================================================================
 
   - id: schema-resource-data
-    pattern: "*$PKG.ResourceData"
+    pattern-either:
+      - pattern: |
+          func $F(..., $D *$PKG.ResourceData, ...) $RET {
+            ...
+          }
+      - pattern: |
+          func ($R) $F(..., $D *$PKG.ResourceData, ...) $RET {
+            ...
+          }
+      - pattern: "$D := $X.(*$PKG.ResourceData)"
     languages: [go]
     severity: INFO
-    message: "*schema.ResourceData — each occurrence is a CRUD function signature that needs req/resp parameters."
+    message: "*schema.ResourceData — each occurrence is a CRUD function signature that needs req/resp parameters and typed-model conversion."
 
   - id: resource-data-id
     pattern-either:
@@ -323,3 +351,115 @@ rules:
     languages: [go]
     severity: INFO
     message: "helper/resource Test/UnitTest/ParallelTest — must come from terraform-plugin-testing/helper/resource (not terraform-plugin-sdk/v2/helper/resource)."
+
+  # ===========================================================================
+  # P0 additions from Opus gap analysis — frequent CRUD-body and provider-config
+  # patterns that were silently invisible to the previous ruleset.
+  # ===========================================================================
+
+  - id: resource-data-get
+    pattern-either:
+      - pattern: "$D.Get($K)"
+      - pattern: "$D.GetOk($K)"
+      - pattern: "$D.GetOkExists($K)"
+    languages: [go]
+    severity: INFO
+    message: "d.Get/d.GetOk/d.GetOkExists — replace with typed Plan/State.Get into a model struct, then access typed fields."
+
+  - id: resource-data-set
+    pattern: "$D.Set($K, $V)"
+    languages: [go]
+    severity: INFO
+    message: "d.Set — replace with typed model field assignment + resp.State.Set(ctx, model)."
+
+  - id: env-default-func
+    pattern-either:
+      - pattern: "$PKG.EnvDefaultFunc(...)"
+      - pattern: "$PKG.MultiEnvDefaultFunc(...)"
+    languages: [go]
+    severity: INFO
+    message: "schema.EnvDefaultFunc / MultiEnvDefaultFunc — no framework equivalent. Read env directly in Configure (os.Getenv) or in a custom default function."
+
+  - id: schema-default-timeout
+    pattern-either:
+      - pattern: "$PKG.DefaultTimeout(...)"
+      - pattern: "$D.Timeout($K)"
+    languages: [go]
+    severity: INFO
+    message: "schema.DefaultTimeout / d.Timeout — replace with framework-timeouts: plan.Timeouts.Create(ctx, defaultDuration) etc."
+
+  # ===========================================================================
+  # P1 additions — real but lower frequency
+  # ===========================================================================
+
+  - id: resource-constructor
+    pattern-either:
+      - pattern: |
+          func $F() *$PKG.Resource {
+            ...
+          }
+      - pattern: |
+          func $F($CTX) *$PKG.Resource {
+            ...
+          }
+    languages: [go]
+    severity: INFO
+    message: "Resource constructor (returns *schema.Resource) — count = number of resources/data sources to migrate."
+
+  - id: resource-diff-signature
+    pattern-either:
+      - pattern: |
+          func $F(..., $D *$PKG.ResourceDiff, ...) $RET {
+            ...
+          }
+      - pattern: |
+          func ($R) $F(..., $D *$PKG.ResourceDiff, ...) $RET {
+            ...
+          }
+    languages: [go]
+    severity: INFO
+    message: "*schema.ResourceDiff function signature — body must be ported into a ResourceWithModifyPlan.ModifyPlan method."
+
+  - id: schema-set-cast
+    pattern: "$D.Get($K).(*$PKG.Set)"
+    languages: [go]
+    severity: INFO
+    message: "Inline *schema.Set cast — TypeSet expanded to manual List() walk. Replace with typed-model SetAttribute access."
+
+  - id: helper-acctest
+    pattern-either:
+      - pattern: "acctest.RandString(...)"
+      - pattern: "acctest.RandStringFromCharSet(...)"
+      - pattern: "acctest.RandIntRange(...)"
+      - pattern: "acctest.RandomWithPrefix(...)"
+      - pattern: "acctest.RandIpAddress(...)"
+      - pattern: "acctest.RandTLSCert(...)"
+    languages: [go]
+    severity: INFO
+    message: "helper/acctest functions — must come from terraform-plugin-testing/helper/acctest (drop the SDKv2 import path)."
+
+  - id: helper-structure
+    pattern-either:
+      - pattern: "structure.NormalizeJsonString(...)"
+      - pattern: "structure.SuppressJsonDiff(...)"
+      - pattern: "structure.ExpandJsonFromString(...)"
+      - pattern: "structure.FlattenJsonToString(...)"
+    languages: [go]
+    severity: INFO
+    message: "helper/structure (JSON normalisation) — gone. Refactor to a custom-type ValueFromTerraform/ValueFromString or a plan modifier."
+
+  # ===========================================================================
+  # Test-only additions
+  # ===========================================================================
+
+  - id: test-providers-field
+    pattern: "Providers: $X"
+    languages: [go]
+    severity: INFO
+    message: "Providers: (older test field, pre-SDKv2.5) → ProtoV6ProviderFactories."
+
+  - id: test-pre-check
+    pattern: "PreCheck: $X"
+    languages: [go]
+    severity: INFO
+    message: "PreCheck: in test config — body usually references *schema.Provider plumbing that needs rewriting."

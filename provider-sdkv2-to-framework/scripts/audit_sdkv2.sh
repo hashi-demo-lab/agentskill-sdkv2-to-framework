@@ -218,9 +218,22 @@ RULE_LABELS = {
     "resource-data-change":         "d.HasChange / d.GetChange / d.IsNewResource / d.Partial",
     "diag-helpers":                 "diag.FromErr / diag.Errorf",
     "type-collection-primitive-elem": "TypeList/Set/Map of primitive (Elem &Schema{Type:})",
+    # -- Gap-analysis P0 additions --
+    "resource-data-get":            "d.Get / d.GetOk / d.GetOkExists calls",
+    "resource-data-set":            "d.Set calls",
+    "env-default-func":             "schema.EnvDefaultFunc / MultiEnvDefaultFunc (provider-config)",
+    "schema-default-timeout":       "schema.DefaultTimeout / d.Timeout (timeouts)",
+    # -- Gap-analysis P1 additions --
+    "resource-constructor":         "Resource constructor (count = resources to migrate)",
+    "resource-diff-signature":      "*schema.ResourceDiff function (port to ModifyPlan body)",
+    "schema-set-cast":              "Inline *schema.Set cast from d.Get",
+    "helper-acctest":               "helper/acctest test utilities",
+    "helper-structure":             "helper/structure JSON normalisation helpers",
     # -- Test-only additions --
     "test-provider-factories":      "ProviderFactories: (test config — must become ProtoV6ProviderFactories)",
     "test-resource-test-helper":    "resource.Test/UnitTest/ParallelTest (must use terraform-plugin-testing)",
+    "test-providers-field":         "Providers: (older test field — pre-SDKv2.5)",
+    "test-pre-check":               "PreCheck: (test pre-check, often references *schema.Provider plumbing)",
 }
 
 # Per-file complexity score, weighted to surface files that need most attention.
@@ -235,13 +248,40 @@ def score(counts):
         + counts.get("customize-diff", 0) * 4
         + counts.get("state-func", 0) * 3
         + counts.get("diff-suppress-func", 0) * 2
-        # New weights — high-leverage indicators of migration cost
+        # Helper-package weights
         + counts.get("retry-state-change-conf", 0) * 3
         + counts.get("customdiff-helper", 0) * 3
-        + counts.get("crud-context-fields", 0)            # 4 per resource normally; weight=1
-        + counts.get("schema-resource-data", 0)            # CRUD-method count
-        + counts.get("helper-validation", 0)               # validator replacement count
+        + counts.get("crud-context-fields", 0)
+        + counts.get("schema-resource-data", 0)
+        + counts.get("helper-validation", 0)
+        # Gap-analysis additions — d.Get/d.Set are very high-volume but each
+        # individual hit is trivial-translation work. Weight 0.25 keeps them
+        # contributing a useful bias without dominating files like provider.go.
+        + counts.get("resource-data-get", 0) * 0.25
+        + counts.get("resource-data-set", 0) * 0.25
+        + counts.get("env-default-func", 0) * 2
+        + counts.get("schema-default-timeout", 0) * 1
+        + counts.get("resource-diff-signature", 0) * 4
+        + counts.get("helper-structure", 0) * 2
     )
+
+def score_breakdown(counts):
+    """Return list of (rule_id, contribution) tuples sorted by contribution desc.
+    Used to explain why a file ranks where it does."""
+    weights = {
+        "force-new": 1, "validate-func": 2, "state-upgraders": 5,
+        "max-items-1-nested-block": 4, "nested-elem-resource": 2,
+        "importer": 2, "customize-diff": 4, "state-func": 3,
+        "diff-suppress-func": 2, "retry-state-change-conf": 3,
+        "customdiff-helper": 3, "crud-context-fields": 1,
+        "schema-resource-data": 1, "helper-validation": 1,
+        "resource-data-get": 0.25, "resource-data-set": 0.25,
+        "env-default-func": 2, "schema-default-timeout": 1,
+        "resource-diff-signature": 4, "helper-structure": 2,
+    }
+    contribs = [(rid, counts.get(rid, 0) * w) for rid, w in weights.items()
+                if counts.get(rid, 0) > 0]
+    return sorted(contribs, key=lambda x: -x[1])
 
 ranked = sorted(per_file.items(), key=lambda x: -score(x[1]))[:max_files]
 
@@ -262,6 +302,9 @@ nmr_signals = {
     "customdiff-helper":        "customdiff helper combinators (refactor into ModifyPlan)",
     "exists-callback":          "Exists callback (gone — use RemoveResource in Read)",
     "configure-context-func":   "Provider ConfigureContextFunc (provider-level migration)",
+    "resource-diff-signature":  "*schema.ResourceDiff function (port to ModifyPlan)",
+    "helper-structure":         "helper/structure JSON normalisation (refactor to custom type or plan modifier)",
+    "schema-set-cast":          "*schema.Set cast (TypeSet expansion → typed model)",
 }
 
 needs_review = []
@@ -276,11 +319,16 @@ SECTIONS = [
     ("Schema-level fields", ["force-new", "validate-func", "diff-suppress-func", "customize-diff", "state-func", "sensitive", "deprecated-attr", "schema-default", "cross-attr-constraint", "set-hash-func"]),
     ("Resource-level fields", ["importer", "import-state-passthrough", "timeouts", "state-upgraders", "schema-version", "migrate-state-legacy", "exists-callback"]),
     ("Block / nested-attribute decisions", ["max-items-1-nested-block", "nested-elem-resource", "min-items-positive", "type-collection-primitive-elem"]),
-    ("Helper packages (need replacement)", ["retry-state-change-conf", "retry-retry-context", "customdiff-helper", "helper-validation"]),
-    ("CRUD-body shape", ["crud-context-fields", "schema-resource-data", "resource-data-id", "resource-data-change", "diag-helpers"]),
-    ("Provider-level wiring", ["resources-map", "data-sources-map", "configure-context-func", "schema-provider-type"]),
+    ("Helper packages (need replacement)", ["retry-state-change-conf", "retry-retry-context", "customdiff-helper", "helper-validation", "helper-structure", "helper-acctest"]),
+    ("CRUD-body shape", ["crud-context-fields", "schema-resource-data", "resource-constructor", "resource-diff-signature", "resource-data-id", "resource-data-get", "resource-data-set", "resource-data-change", "schema-set-cast", "diag-helpers", "schema-default-timeout"]),
+    ("Provider-level wiring", ["resources-map", "data-sources-map", "configure-context-func", "schema-provider-type", "env-default-func"]),
 ]
-TEST_RULES = ["test-provider-factories", "test-resource-test-helper", "helper-validation", "diag-helpers", "schema-resource-data", "resource-data-id"]
+PROVIDER_LEVEL_RULES = ["resources-map", "data-sources-map", "configure-context-func", "schema-provider-type", "env-default-func"]
+TEST_RULES = [
+    "test-provider-factories", "test-resource-test-helper", "test-providers-field", "test-pre-check",
+    "helper-validation", "helper-acctest", "diag-helpers", "schema-resource-data",
+    "resource-data-id", "resource-data-get", "resource-data-set", "resource-data-change",
+]
 
 # Emit report.
 print(f"# SDKv2 → Framework Migration Audit\n")
@@ -289,7 +337,26 @@ print("## Summary\n")
 print(f"- Production Go files audited: {total_files}")
 print(f"- Test Go files audited: {test_files}")
 print()
+
+# Resource-count rollup — derived from the resource-constructor rule.
+resource_ctor_count = rule_totals.get("resource-constructor", 0)
+if resource_ctor_count > 0:
+    print(f"- **Resource/data-source constructors detected: {resource_ctor_count}** (each is a `func ...() *schema.Resource` — direct migration count)")
+    print()
+
+# Provider-level migration cost rollup.
+provider_total = sum(rule_totals.get(rid, 0) for rid in PROVIDER_LEVEL_RULES)
+if provider_total > 0:
+    print("### Provider-level migration cost\n")
+    print("These patterns indicate work in `provider.go` / Configure path, separate from per-resource cost. The framework provider type and Configure method must be set up before any resource migration can be tested.\n")
+    for rid in PROVIDER_LEVEL_RULES:
+        if rid in RULE_LABELS and rule_totals.get(rid, 0) > 0:
+            print(f"- {RULE_LABELS[rid]}: **{rule_totals.get(rid, 0)}**")
+    print()
+
 for section_name, rule_ids in SECTIONS:
+    if section_name == "Provider-level wiring":
+        continue  # Already shown above as "Provider-level migration cost".
     section_total = sum(rule_totals.get(rid, 0) for rid in rule_ids)
     if section_total == 0:
         continue
@@ -302,11 +369,47 @@ for section_name, rule_ids in SECTIONS:
     print()
 
 print(f"## Per-file findings (top {max_files} by complexity, production code)\n")
-print("| File | ForceNew | Validators | StateUpgraders | MaxItems:1 | NestedElem | Importer | CustomizeDiff | StateFunc | retry.SCC | customdiff | CRUD ctxs |")
-print("|------|---------:|-----------:|---------------:|-----------:|-----------:|---------:|--------------:|----------:|----------:|-----------:|----------:|")
+print("| File | ForceNew | Validators | StateUpgr | MaxIt:1 | Imptr | CustDiff | StateFunc | retry.SCC | custdiff | CRUDctx | d.Get | d.Set |")
+print("|------|---------:|-----------:|----------:|--------:|------:|---------:|----------:|----------:|---------:|--------:|------:|------:|")
 for path, counts in ranked:
-    print(f"| {path} | {counts.get('force-new', 0)} | {counts.get('validate-func', 0) + counts.get('helper-validation', 0)} | {counts.get('state-upgraders', 0)} | {counts.get('max-items-1-nested-block', 0)} | {counts.get('nested-elem-resource', 0)} | {counts.get('importer', 0)} | {counts.get('customize-diff', 0)} | {counts.get('state-func', 0)} | {counts.get('retry-state-change-conf', 0)} | {counts.get('customdiff-helper', 0)} | {counts.get('crud-context-fields', 0)} |")
+    print(f"| {path} | {counts.get('force-new', 0)} | {counts.get('validate-func', 0) + counts.get('helper-validation', 0)} | {counts.get('state-upgraders', 0)} | {counts.get('max-items-1-nested-block', 0)} | {counts.get('importer', 0)} | {counts.get('customize-diff', 0)} | {counts.get('state-func', 0)} | {counts.get('retry-state-change-conf', 0)} | {counts.get('customdiff-helper', 0)} | {counts.get('crud-context-fields', 0)} | {counts.get('resource-data-get', 0)} | {counts.get('resource-data-set', 0)} |")
 print()
+
+# Per-file score breakdown for the top 5, so the migrator can see why a file ranked high.
+print("### Score breakdown for top 5 files\n")
+for path, counts in ranked[:5]:
+    breakdown = score_breakdown(counts)
+    if breakdown:
+        bits = ", ".join(f"{rid}×{counts.get(rid,0)}={contrib:g}" for rid, contrib in breakdown[:6])
+        print(f"- `{path}` (score {score(counts):g}): {bits}")
+print()
+
+# Cross-rule correlations — files hitting multiple judgment-rich patterns.
+correlations = []
+for path, counts in per_file.items():
+    flags = []
+    if counts.get("state-upgraders", 0) > 0 and counts.get("importer", 0) > 0:
+        flags.append("state-upgrade + composite-ID importer")
+    if counts.get("customize-diff", 0) > 0 and counts.get("customdiff-helper", 0) > 0:
+        flags.append("CustomizeDiff with customdiff combinators (multi-leg ModifyPlan)")
+    if counts.get("max-items-1-nested-block", 0) > 0 and counts.get("nested-elem-resource", 0) > 2:
+        flags.append("MaxItems:1 + many nested blocks (deep block-vs-attribute decision tree)")
+    if counts.get("retry-state-change-conf", 0) > 0 and counts.get("timeouts", 0) > 0:
+        flags.append("retry.StateChangeConf + Timeouts (full async state-change refactor)")
+    if counts.get("state-func", 0) > 0 and counts.get("diff-suppress-func", 0) > 0:
+        flags.append("StateFunc + DiffSuppressFunc (custom-type with normalisation — destructive-type trap)")
+    if flags:
+        correlations.append((path, flags))
+correlations.sort()
+
+if correlations:
+    print("### Cross-rule correlations (files combining judgment-rich patterns)\n")
+    print("Files hitting multiple high-judgment patterns at once. Read both/all references *before* editing.\n")
+    for path, flags in correlations[:15]:
+        print(f"- `{path}`:")
+        for f in flags:
+            print(f"  - {f}")
+    print()
 
 print("## Needs manual review\n")
 print("Read these files directly. Even with semgrep's AST-aware matching, the *decision* (block vs nested attribute, single-step state upgrade, composite-ID importer parsing, customdiff structure) requires human/LLM judgment.\n")
@@ -327,18 +430,23 @@ print()
 # `*$PKG.Provider` pattern without surrounding context).
 import re
 SHARED_TEST_PATH_PATTERNS = [
-    re.compile(r'(^|/)acceptance/[^/]+\.go$'),       # Linode, AzureRM
-    re.compile(r'(^|/)testutil/[^/]+\.go$'),         # common
-    re.compile(r'(^|/)internal/test/[^/]+\.go$'),    # internal-package convention
-    re.compile(r'(^|/)helper/test[^/]*\.go$'),       # helper/test*.go
-    re.compile(r'(^|/)provider_test\.go$'),          # TestProvider host
-    re.compile(r'(^|/)acceptance_test\.go$'),        # alt host
-    re.compile(r'(^|/)common_test\.go$'),            # alt host
-    re.compile(r'(^|/)test_helpers?\.go$'),          # helpers
-    re.compile(r'(^|/)testing/[^/]+\.go$'),          # alt convention
+    (re.compile(r'(^|/)acceptance/[^/]+\.go$'),    "acceptance/ dir"),
+    (re.compile(r'(^|/)testutil/[^/]+\.go$'),      "testutil/ dir"),
+    (re.compile(r'(^|/)internal/test/[^/]+\.go$'), "internal/test/ dir"),
+    (re.compile(r'(^|/)helper/test[^/]*\.go$'),    "helper/test*.go"),
+    (re.compile(r'(^|/)provider_test\.go$'),       "provider_test.go"),
+    (re.compile(r'(^|/)acceptance_test\.go$'),     "acceptance_test.go"),
+    (re.compile(r'(^|/)common_test\.go$'),         "common_test.go"),
+    (re.compile(r'(^|/)test_helpers?\.go$'),       "test_helpers*.go"),
+    (re.compile(r'(^|/)testing/[^/]+\.go$'),       "testing/ dir"),
 ]
 def is_shared_test_infra(path):
-    return any(p.search(path) for p in SHARED_TEST_PATH_PATTERNS)
+    return any(p.search(path) for p, _ in SHARED_TEST_PATH_PATTERNS)
+def shared_infra_reason(path):
+    for p, label in SHARED_TEST_PATH_PATTERNS:
+        if p.search(path):
+            return label
+    return ""
 
 # Walk the repo to find every candidate shared-infra file, regardless of
 # whether any rule fired in it. This is the authoritative list.
@@ -386,7 +494,9 @@ else:
             print("Files matching test-infra path conventions (acceptance/, testutil/, provider_test.go, etc.). Every migrated test file references something here; flipping ProviderFactories per resource is wasted effort if the factory isn't framework-aware yet.\n")
             for path, total, counts in shared_infra[:15]:
                 non_zero = [f"{rid}={n}" for rid, n in sorted(counts.items()) if n > 0]
-                print(f"- `{path}` — {total} pattern hits ({', '.join(non_zero) if non_zero else '0'})")
+                reason = shared_infra_reason(path)
+                hits_str = ', '.join(non_zero) if non_zero else 'no audit-rule hits'
+                print(f"- `{path}` [{reason}] — {hits_str}")
             print()
 
         # Top per-resource test files by total findings.
